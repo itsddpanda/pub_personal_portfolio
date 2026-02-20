@@ -27,7 +27,3 @@ RapidFuzz==3.14.3
 
 # Cryptography
 cryptography==46.0.5
-
-# CLI / Display
-click==8.1.7
-rich==13.7.1
