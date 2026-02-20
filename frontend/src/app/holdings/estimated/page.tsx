@@ -74,7 +74,7 @@ export default function EstimatedHoldingsPage() {
                     <h3 className="text-amber-800 font-semibold text-sm mb-2">Why does this happen?</h3>
                     <p className="text-amber-700 text-sm leading-relaxed">
                         When you upload a CAS that covers only a recent period (e.g., last 1 year), schemes you held before
-                        that period appear as <strong>"Opening Balance"</strong> entries — they show <em>how many units</em> you held,
+                        that period appear as <strong>&quot;Opening Balance&quot;</strong> entries — they show <em>how many units</em> you held,
                         but <strong>not how much you paid for them</strong>. This makes the invested value appear lower than it actually is.
                     </p>
                     <p className="text-amber-700 text-sm mt-2 leading-relaxed">

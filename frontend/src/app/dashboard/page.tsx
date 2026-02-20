@@ -46,6 +46,18 @@ export default function DashboardPage() {
         syncingRef.current = syncing;
     }, [syncing]);
 
+    const fetchData = React.useCallback(async (userId: string) => {
+        try {
+            const result = await getDashboardSummary(userId);
+            setData(result);
+        } catch (error) {
+            console.error("Failed to fetch dashboard", error);
+            toast.error("Failed to load dashboard data.");
+        } finally {
+            setLoading(false);
+        }
+    }, [toast]);
+
     useEffect(() => {
         const userId = localStorage.getItem('mfa_user_id');
         if (!userId) {
@@ -82,19 +94,8 @@ export default function DashboardPage() {
         poll();
 
         return () => clearTimeout(pollTimeout);
-    }, [router]);
+    }, [router, fetchData]);
 
-    const fetchData = async (userId: string) => {
-        try {
-            const result = await getDashboardSummary(userId);
-            setData(result);
-        } catch (error) {
-            console.error("Failed to fetch dashboard", error);
-            toast.error("Failed to load dashboard data.");
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handleForceSync = async () => {
         const userId = localStorage.getItem('mfa_user_id');

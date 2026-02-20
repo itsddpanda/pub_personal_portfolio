@@ -68,7 +68,7 @@ export default function Home() {
         ) : usersExist ? (
           <Card title="Select User">
             <p className="mb-4 text-gray-500">
-              Profiles found on this device. Use the "Login" menu in the top right to access your portfolio.
+              Profiles found on this device. Use the &quot;Login&quot; menu in the top right to access your portfolio.
             </p>
             <p className="mt-2 text-sm text-blue-600 font-medium animate-pulse">
               &uarr; Click Login at the top right
