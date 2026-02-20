@@ -43,9 +43,12 @@ def fetch_latest_nav(amfi_code: str):
 
 def sync_navs(session: Session):
     """
-    Iterates through all schemes with AMFI codes and updates their NAVs.
+    Iterates through all schemes with AMFI codes that are missing NAVs (latest_nav IS NULL)
+    and updates their NAVs using the fallback mfapi.in API.
     """
-    schemes = session.exec(select(Scheme).where(Scheme.amfi_code != None)).all()
+    schemes = session.exec(
+        select(Scheme).where(Scheme.amfi_code != None, Scheme.latest_nav == None)
+    ).all()
     updated_count = 0
     errors = 0
     

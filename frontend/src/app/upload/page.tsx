@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { uploadCAS } from '@/lib/api';
+import { uploadCAS, getSyncStatus } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Eye, EyeOff } from 'lucide-react';
@@ -14,6 +14,7 @@ export default function UploadPage() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [phase, setPhase] = useState<'IDLE' | 'READING' | 'UNDERSTANDING' | 'CALCULATING'>('IDLE');
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
     const toast = useToast();
@@ -26,40 +27,84 @@ export default function UploadPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const processUpload = async (ignoreActiveUser: boolean = false) => {
         if (!file || !password) {
             toast.error("Please select a file and enter the password.");
             return;
         }
 
         setIsLoading(true);
+        setPhase('READING');
         setError(null);
 
         try {
-            const existingUserId = localStorage.getItem('mfa_user_id') || undefined;
+            const existingUserId = ignoreActiveUser ? undefined : (localStorage.getItem('mfa_user_id') || undefined);
+
+            setPhase('UNDERSTANDING');
             const result = await uploadCAS(file, password, existingUserId);
 
             if (result.status === 'success') {
                 if (result.user_id) {
                     localStorage.setItem('mfa_user_id', result.user_id);
                 }
+
+                // Phase 3: Wait for NAV sync
+                setPhase('CALCULATING');
+
+                // Poll for up to 30 seconds
+                let attempts = 0;
+                while (attempts < 15) {
+                    try {
+                        const syncStatus = await getSyncStatus();
+                        if (!syncStatus.is_syncing) {
+                            break;
+                        }
+                    } catch (e) {
+                        // ignore polling errors
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    attempts++;
+                }
+
                 toast.success("CAS uploaded and analyzed successfully!");
-                router.push('/dashboard');
+                if (result.reconciled_opening_balances && result.reconciled_opening_balances > 0) {
+                    toast.success(`Full history imported! Invested value updated for ${result.reconciled_opening_balances} scheme${result.reconciled_opening_balances > 1 ? 's' : ''}.`);
+                }
+                // Force a full reload to the dashboard to update the Navbar state
+                window.location.href = '/dashboard';
+            } else if (result.status === 'warning' && result.code === 'PAN_MISMATCH') {
+                const proceed = window.confirm(`CAS belongs to new user (${result.detected_name}). Create & switch?`);
+                if (proceed) {
+                    await processUpload(true);
+                } else {
+                    toast.error("Upload cancelled.");
+                    setError("Upload cancelled due to PAN mismatch.");
+                    setIsLoading(false);
+                    setPhase('IDLE');
+                }
             } else if (result.status === 'warning') {
                 toast.error(`Import Warning: ${result.message}`);
                 setError(`Warning: ${result.message}`);
+                setIsLoading(false);
+                setPhase('IDLE');
             } else if (result.status === 'error') {
                 toast.error(result.message);
                 setError(result.message);
+                setIsLoading(false);
+                setPhase('IDLE');
             }
         } catch (err: any) {
             const msg = err.message || "Upload failed";
             setError(msg);
             toast.error(msg);
-        } finally {
             setIsLoading(false);
+            setPhase('IDLE');
         }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        await processUpload(false);
     };
 
     return (
@@ -123,12 +168,19 @@ export default function UploadPage() {
                         type="submit"
                         isLoading={isLoading}
                         className="w-full justify-center"
-                        disabled={!file || !password}
+                        disabled={!file || !password || isLoading}
                     >
-                        Upload & Analyze
+                        {phase === 'IDLE' ? "Upload & Analyze" :
+                            phase === 'READING' ? "Reading statement..." :
+                                phase === 'UNDERSTANDING' ? "Understanding your statement..." :
+                                    "Calculating portfolio..."}
                     </Button>
 
                 </form>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4 text-sm text-blue-700">
+                    💡 For accurate invested value, download a <strong>Detailed CAS from inception</strong> (not just the last year) from <a href="https://www.camsonline.com" target="_blank" rel="noopener noreferrer" className="underline">mycams.com</a> or <a href="https://www.kfintech.com" target="_blank" rel="noopener noreferrer" className="underline">kfintech.com</a>.
+                </div>
             </Card>
         </div>
     );

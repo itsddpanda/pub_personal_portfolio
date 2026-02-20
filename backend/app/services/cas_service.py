@@ -130,6 +130,7 @@ def process_cas_data(
         session.refresh(portfolio)
 
     new_txns_count = 0
+    reconciled_count = 0
     skipped_txns_count = 0
 
     # --- DEBUG DUMP START ---
@@ -398,7 +399,7 @@ def process_cas_data(
                 session.add(new_txn)
                 new_txns_count += 1
                 
-                scheme_debug["transactions"].append(txn_debug_entry) # DEBUG
+            scheme_debug["transactions"].append(txn_debug_entry) # DEBUG
             
             # --- RECONCILIATION logic ---
             # If we imported real transactions, check if they "precede" an existing OPENING_BALANCE
@@ -412,6 +413,7 @@ def process_cas_data(
                 )).all()
                 
                 if to_delete:
+                    reconciled_count += len(to_delete)
                     print(f"RECONCILE: Removing {len(to_delete)} redundant Opening Balances for {scheme_obj.name}")
                     for d_txn in to_delete:
                         session.delete(d_txn)
@@ -436,5 +438,6 @@ def process_cas_data(
         "user": user.name,
         "pan": full_pan,
         "new_transactions": new_txns_count,
-        "skipped_transactions": skipped_txns_count
+        "skipped_transactions": skipped_txns_count,
+        "reconciled_opening_balances": reconciled_count
     }

@@ -6,26 +6,27 @@ import { Card } from '@/components/ui/Card';
 
 export default function Home() {
   const [showDashboard, setShowDashboard] = useState(false);
+  const [usersExist, setUsersExist] = useState(false);
 
   useEffect(() => {
     // Check if user is logged in locally
     const userId = localStorage.getItem("mfa_user_id");
-    if (userId) {
-      // Validate with backend (lazy check: just existence of ID for now, or ping API)
-      // For MVP speed, we'll trust localStorage but the Dashboard will handle 404 if user deleted.
-      // Requirement says: "Frontend must silently ping GET /api/users/{id}"
-      // Let's do that for robustness.
-      fetch(`http://localhost:8000/api/users`)
-        .then(res => res.json())
-        .then((users: any[]) => {
-          if (users.find(u => u.id === userId)) {
+
+    // Always fetch users to see if we have profiles created
+    fetch(`http://localhost:8000/api/users`)
+      .then(res => res.json())
+      .then((users: any[]) => {
+        if (users && users.length > 0) {
+          setUsersExist(true);
+          if (userId && users.find(u => u.id === userId)) {
             setShowDashboard(true);
           } else {
-            localStorage.removeItem("mfa_user_id"); // Cleanup stale
+            // Cleanup stale id if it doesn't exist in DB anymore
+            if (userId) localStorage.removeItem("mfa_user_id");
           }
-        })
-        .catch(() => { /* API down? Ignore, show default */ });
-    }
+        }
+      })
+      .catch(() => { /* API down? Ignore, show default */ });
   }, []);
 
   return (
@@ -53,7 +54,7 @@ export default function Home() {
           </Link>
         </Card>
 
-        {showDashboard && (
+        {showDashboard ? (
           <Card title="Return to Dashboard">
             <p className="mb-4 text-gray-500">
               Welcome back! Your portfolio session is active.
@@ -64,7 +65,16 @@ export default function Home() {
               </Button>
             </Link>
           </Card>
-        )}
+        ) : usersExist ? (
+          <Card title="Select User">
+            <p className="mb-4 text-gray-500">
+              Profiles found on this device. Use the "Login" menu in the top right to access your portfolio.
+            </p>
+            <p className="mt-2 text-sm text-blue-600 font-medium animate-pulse">
+              &uarr; Click Login at the top right
+            </p>
+          </Card>
+        ) : null}
       </div>
     </main>
   );

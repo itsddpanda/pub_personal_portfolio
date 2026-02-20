@@ -57,3 +57,11 @@ export async function syncNavs(xUserId?: string) {
 
     return res.json();
 }
+
+export async function getSyncStatus() {
+    const res = await fetch(`${API_BASE}/status/sync`);
+    if (!res.ok) {
+        throw new Error('Failed to get sync status');
+    }
+    return res.json();
+}

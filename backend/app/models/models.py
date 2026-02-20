@@ -89,3 +89,8 @@ class Transaction(SQLModel, table=True):
         """
         raw = f"{pan}|{isin}|{date.isoformat()}|{amount}|{type}|{units}"
         return hashlib.sha256(raw.encode()).hexdigest()
+
+class SystemState(SQLModel, table=True):
+    key: str = Field(primary_key=True)
+    value: str
+    updated_at: datetime = Field(default_factory=datetime.utcnow)

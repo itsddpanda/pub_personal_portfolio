@@ -85,16 +85,24 @@ def get_portfolio_summary(session: Session, user_id: str):
     
     # FIFO Queues: scheme_id -> List of {units, cost_per_unit}
     fifo_queues = defaultdict(list)
+    estimated_schemes = set()  # Track schemes with zero-cost OPENING_BALANCE
+    opening_balance_details = {}  # scheme_id -> {units, date}
     
     # XIRR Cash Flows
     dates = []
     amounts = []
+    total_stamp_duty = 0.0
     
     inflow_types = ["PURCHASE", "PURCHASE_SIP", "SIP", "SWITCH_IN", "STP_IN", "OPENING_BALANCE"]
     outflow_types = ["REDEMPTION", "SWITCH_OUT", "STP_OUT", "SWP"]
     
     for t in txns:
         t_type = t.type.upper()
+        
+        # Track stamp duty
+        if "STAMP_DUTY" in t_type:
+            total_stamp_duty += abs(t.amount) if t.amount else 0
+            continue
         
         # --- FIFO Logic ---
         # Only track schemes that are in our holdings list (optimization? No, need all history)
@@ -108,6 +116,12 @@ def get_portfolio_summary(session: Session, user_id: str):
                     "units": t.units,
                     "cost_per_unit": cost_per_unit
                 })
+                if cost_per_unit == 0 and "OPENING_BALANCE" in t_type:
+                    estimated_schemes.add(t.scheme_id)
+                    opening_balance_details[t.scheme_id] = {
+                        "units": float(t.units),
+                        "date": t.date.isoformat() if t.date else None
+                    }
         
         elif any(x in t_type for x in outflow_types):
             # Remove from queue (First In, First Out)
@@ -162,13 +176,9 @@ def get_portfolio_summary(session: Session, user_id: str):
         pass # Handle in next step if needed, but wait:
         
     # Re-map holdings to inject invested_value
-    # The previous loop used `results` (Scheme, net_units, invested_sum).
-    # I need to match scheme.id from `results` with `scheme_invested_map`.
-    
-    # Let's fix processed_holdings construction to look up from map.
-    # OR: Re-iterate results now.
-    
     final_holdings = []
+    latest_nav_date = None
+    
     for scheme, net_units, _old_invested_sum in results:
         if net_units < 0.001:
             continue
@@ -176,16 +186,31 @@ def get_portfolio_summary(session: Session, user_id: str):
         nav = scheme.latest_nav if scheme.latest_nav else 0.0
         current_val = net_units * nav
         
+        # Track max NAV date among active holdings
+        if scheme.latest_nav_date:
+            if not latest_nav_date or scheme.latest_nav_date > latest_nav_date:
+                latest_nav_date = scheme.latest_nav_date
+        
         fifo_invested = scheme_invested_map.get(scheme.id, 0.0)
         
-        final_holdings.append({
+        holding_entry = {
             "scheme_name": scheme.name,
             "isin": scheme.isin,
             "units": float(net_units),
             "current_nav": nav,
             "current_value": current_val,
-            "invested_value": float(fifo_invested)
-        })
+            "invested_value": float(fifo_invested),
+            "is_estimated": scheme.id in estimated_schemes
+        }
+        
+        if scheme.id in estimated_schemes:
+            ob = opening_balance_details.get(scheme.id, {})
+            holding_entry["opening_balance_units"] = ob.get("units", 0)
+            holding_entry["opening_balance_date"] = ob.get("date")
+            holding_entry["purchased_units"] = float(net_units) - ob.get("units", 0)
+            holding_entry["purchased_invested"] = float(fifo_invested)
+        
+        final_holdings.append(holding_entry)
 
     # Add terminal value for XIRR
     if total_current_value > 0:
@@ -208,5 +233,9 @@ def get_portfolio_summary(session: Session, user_id: str):
         "total_value": total_current_value,
         "invested_value": total_invested_value,
         "xirr": xirr_val * 100 if xirr_val else 0.0, # Percentage
-        "holdings": final_holdings
+        "latest_nav_date": latest_nav_date.isoformat() if latest_nav_date else None,
+        "holdings": final_holdings,
+        "has_estimated_holdings": len(estimated_schemes) > 0,
+        "estimated_schemes_count": len(estimated_schemes),
+        "total_stamp_duty": round(total_stamp_duty, 2)
     }

@@ -4,6 +4,8 @@ from app.db.engine import get_session
 from app.services.nav import sync_navs
 from app.services.analytics import get_portfolio_summary
 import logging
+import subprocess
+import os
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -21,7 +23,11 @@ async def trigger_nav_sync(
         raise HTTPException(status_code=400, detail="User ID header is required for sync summary.")
 
     try:
-        # Run sync synchronously to ensure data is fresh
+        # Run AMFI bulk sync synchronously to ensure data is fresh
+        script_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'scripts', 'sync_amfi.py'))
+        subprocess.run(["python", script_path], check=False)
+        
+        # Run fallback sync (mfapi.in) for schemes still missing NAVs
         sync_result = sync_navs(session)
         
         # Calculate updated summary
