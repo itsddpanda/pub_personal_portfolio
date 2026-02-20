@@ -83,7 +83,7 @@ export default function UploadPage() {
                 hover:file:bg-blue-100"
                         />
                         <p className="mt-1 text-xs text-gray-500">
-                            Download your Consolidated Account Statement from CAMS or KFintech.
+                            Download your Detailed Consolidated Account Statement from CAMS or KFintech.
                         </p>
                     </div>
 

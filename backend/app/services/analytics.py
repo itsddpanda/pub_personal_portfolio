@@ -14,7 +14,7 @@ def get_portfolio_summary(session: Session, user_id: str):
     # Note: casparser typically gives positive units for both, so we use transaction type logic.
     
     # Define which types reduce units
-    REDEMPTION_TYPES = ["REDEMPTION", "SWITCH OUT", "STP OUT", "SWP"]
+    REDEMPTION_TYPES = ["REDEMPTION", "SWITCH_OUT", "STP_OUT", "SWP"]
     
     # Query for holdings: Scheme + Net Units
     # We join folio -> portfolio to filter by user_id
@@ -90,8 +90,8 @@ def get_portfolio_summary(session: Session, user_id: str):
     dates = []
     amounts = []
     
-    inflow_types = ["PURCHASE", "SIP", "SWITCH IN", "STP IN", "OPENING_BALANCE"]
-    outflow_types = ["REDEMPTION", "SWITCH OUT", "STP OUT", "SWP"]
+    inflow_types = ["PURCHASE", "PURCHASE_SIP", "SIP", "SWITCH_IN", "STP_IN", "OPENING_BALANCE"]
+    outflow_types = ["REDEMPTION", "SWITCH_OUT", "STP_OUT", "SWP"]
     
     for t in txns:
         t_type = t.type.upper()
@@ -111,7 +111,7 @@ def get_portfolio_summary(session: Session, user_id: str):
         
         elif any(x in t_type for x in outflow_types):
             # Remove from queue (First In, First Out)
-            units_to_redeem = t.units
+            units_to_redeem = abs(t.units) if t.units else 0
             
             # Scheme queue
             queue = fifo_queues[t.scheme_id]

@@ -162,16 +162,20 @@ def process_cas_data(
         for scheme_data in folio_data.get("schemes", []):
             isin = scheme_data.get("isin")
             amfi = scheme_data.get("amfi")
-            scheme_name = scheme_data.get("scheme")
+            scheme_name_raw = scheme_data.get("scheme", "")
 
-            # Fallback: Extract ISIN from name if missing
-            if not isin and scheme_name:
-                match = re.search(r"ISIN:\s*([A-Z0-9]{12})", scheme_name)
+            # Fallback: Extract ISIN from raw name if missing
+            if not isin and scheme_name_raw:
+                match = re.search(r"ISIN:\s*([A-Z0-9]{12})", scheme_name_raw)
                 if match:
                     isin = match.group(1)
                 else:
-                    print(f"Warning: Skipping scheme '{scheme_name}' - ISIN not found.")
+                    # If we still don't have ISIN, we can't process this scheme
+                    print(f"Warning: Skipping scheme '{scheme_name_raw}' - ISIN not found.")
                     continue
+            
+            # Requirement 1: Strip ISIN suffix if present for display/storage
+            scheme_name = re.sub(r"\s*-\s*ISIN:\s*[A-Z0-9]{12}", "", scheme_name_raw)
             
             # Lookup AMFI Code if missing
             if not amfi and isin:
@@ -331,6 +335,8 @@ def process_cas_data(
 
             # Process Transactions
             transactions = scheme_data.get("transactions", [])
+            min_real_date = None # Track earliest real txn date
+            
             for txn in transactions:
                 date_val = txn.get("date")
                 
@@ -338,6 +344,9 @@ def process_cas_data(
                     date_obj = datetime.strptime(date_val, "%Y-%m-%d").date()
                 else:
                     date_obj = date_val
+                
+                if not min_real_date or date_obj < min_real_date:
+                    min_real_date = date_obj
                     
                 amount = float(txn.get("amount", 0))
                 units = float(txn.get("units", 0) or 0)
@@ -390,6 +399,22 @@ def process_cas_data(
                 new_txns_count += 1
                 
                 scheme_debug["transactions"].append(txn_debug_entry) # DEBUG
+            
+            # --- RECONCILIATION logic ---
+            # If we imported real transactions, check if they "precede" an existing OPENING_BALANCE
+            if min_real_date:
+                # Find any OPENING_BALANCE for this scheme occurring ON or AFTER min_real_date
+                to_delete = session.exec(select(Transaction).where(
+                    Transaction.scheme_id == scheme_obj.id,
+                    Transaction.folio_id == folio_obj.id,
+                    Transaction.type == "OPENING_BALANCE",
+                    Transaction.date >= min_real_date
+                )).all()
+                
+                if to_delete:
+                    print(f"RECONCILE: Removing {len(to_delete)} redundant Opening Balances for {scheme_obj.name}")
+                    for d_txn in to_delete:
+                        session.delete(d_txn)
             
             folio_debug["schemes"].append(scheme_debug) # DEBUG
         
