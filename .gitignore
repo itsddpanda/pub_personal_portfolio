@@ -36,3 +36,8 @@ tmp/
 # Editor
 .vscode/
 .idea/
+
+# custom ignore
+./*.md
+./*.py
+./docs/
