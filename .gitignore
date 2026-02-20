@@ -25,7 +25,11 @@ out/
 .docker/
 
 # Project Specific
-data/*
+data/_*
+data/cas*
+data/nav_*
+
+
 !data/.gitkeep
 *.zip
 *.log
