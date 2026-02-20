@@ -4,17 +4,27 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
-      - ./data:/data
-    environment:
-      - DATABASE_URL=sqlite:////data/mfa.db
+      - mfa_data:/data
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   frontend:
     build: ./frontend
     ports:
       - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    env_file:
+      - ./frontend/.env.local
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  mfa_data:
