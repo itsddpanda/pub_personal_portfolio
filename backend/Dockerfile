@@ -12,9 +12,8 @@ COPY . .
 COPY start.sh /app
 
 # Setup cron job to run every 12 hours
-RUN echo "0 */12 * * * root /usr/local/bin/python /app/scripts/sync_amfi.py >> /var/log/cron.log 2>&1" > /etc/cron.d/sync_amfi_cron
+RUN echo "0 */12 * * * root . /etc/environment; /usr/local/bin/python /app/scripts/sync_amfi.py >> /var/log/cron.log 2>&1" > /etc/cron.d/sync_amfi_cron
 RUN chmod 0644 /etc/cron.d/sync_amfi_cron
-RUN crontab /etc/cron.d/sync_amfi_cron
 RUN touch /var/log/cron.log
 
 RUN chmod +x /app/start.sh && sed -i 's/\r$//' /app/start.sh

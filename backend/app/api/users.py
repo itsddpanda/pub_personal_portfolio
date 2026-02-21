@@ -16,7 +16,7 @@ class UserRead(BaseModel):
 class PinRequest(BaseModel):
     pin: str
 
-@router.get("/", response_model=List[UserRead])
+@router.get("", response_model=List[UserRead])
 async def list_users(session: Session = Depends(get_session)):
     """
     List all users with a flag indicating if they have a PIN set.

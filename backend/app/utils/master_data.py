@@ -2,8 +2,14 @@ import os
 import json
 
 def generate_isin_map():
-    nav_file = "/home/panda/mfa/data/NAVAll.txt"
-    output_file = "/home/panda/mfa/data/isin_amfi_map.json"
+    # Use environment variables or relative paths
+    base_data_dir = os.getenv("DATA_DIR", "/data")
+    if not os.path.exists(base_data_dir):
+        # Fallback for local development
+        base_data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+        
+    nav_file = os.path.join(base_data_dir, "NAVAll.txt")
+    output_file = os.path.join(base_data_dir, "isin_amfi_map.json")
     
     if not os.path.exists(nav_file):
         print(f"Error: {nav_file} not found.")

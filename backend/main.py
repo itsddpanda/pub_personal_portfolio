@@ -7,12 +7,17 @@ from app.api.analytics import router as analytics_router
 from app.api.users import router as users_router
 from app.api.status import router as status_router
 from app.db.engine import create_db_and_tables
+from app.api.scheme import router as scheme_router
+from app.core.logging_config import setup_logging
+
+# Initialize centralized logging
+logger = setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
 
-app = FastAPI(title="Mutual Fund Analyzer API", lifespan=lifespan)
+app = FastAPI(title="Mutual Fund Analyzer API", lifespan=lifespan, redirect_slashes=False)
 
 import os
 
@@ -26,8 +31,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-from app.api.scheme import router as scheme_router
 
 app.include_router(cas_router, prefix="/api", tags=["CAS"])
 app.include_router(nav_router, prefix="/api", tags=["NAV"])

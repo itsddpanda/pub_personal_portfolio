@@ -20,8 +20,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 ISIN_MAP_PATH = os.path.join(BASE_DIR, "data", "isin_amfi_map.json")
 
 # Fallback for Docker container path if BASE_DIR logic doesn't align with mount
-if not os.path.exists(ISIN_MAP_PATH) and os.path.exists("/data/isin_amfi_map.json"):
-    ISIN_MAP_PATH = "/data/isin_amfi_map.json"
+if not os.path.exists(ISIN_MAP_PATH):
+    if os.path.exists("/data/isin_amfi_map.json"):
+        ISIN_MAP_PATH = "/data/isin_amfi_map.json"
+    elif os.path.exists("./data/isin_amfi_map.json"):
+        ISIN_MAP_PATH = "./data/isin_amfi_map.json"
 
 try:
     if os.path.exists(ISIN_MAP_PATH):

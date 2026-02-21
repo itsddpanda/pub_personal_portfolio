@@ -1,4 +1,4 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException, Body, Depends, Header, Request
+from fastapi import APIRouter, File, UploadFile, HTTPException, Body, Depends, Header, Request, BackgroundTasks
 from typing import Dict, Any, Optional
 from sqlmodel import Session, select
 from app.db.engine import get_session
@@ -11,16 +11,27 @@ import os
 from datetime import datetime
 from uuid import UUID
 import hashlib
+import subprocess
 
 from app.services.cas_service import process_cas_data
 
 router = APIRouter()
+
+def trigger_background_sync():
+    """Run the AMFI sync script in a separate process to avoid blocking the API worker."""
+    try:
+        # Use python from the environment to run the sync script
+        subprocess.Popen(["python", "/app/scripts/sync_amfi.py"])
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
 
 @router.post("/upload")
 async def upload_cas(
     request: Request,
     file: UploadFile = File(...),
     password: str = Body(...),
+    background_tasks: BackgroundTasks = BackgroundTasks(),
     x_user_id: str = Header(None),
     session: Session = Depends(get_session)
 ):
@@ -54,7 +65,13 @@ async def upload_cas(
         content = bytes(content)
         
         # Delegate to Service Layer
-        return process_cas_data(session, content, password, x_user_id)
+        result = process_cas_data(session, content, password, x_user_id)
+        
+        # Trigger background sync if upload was successful and new schemes/txns might exist
+        if result.get("status") == "success":
+            background_tasks.add_task(trigger_background_sync)
+            
+        return result
 
     except HTTPException as he:
         raise he

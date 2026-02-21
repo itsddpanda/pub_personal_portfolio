@@ -22,7 +22,7 @@ export default function UserMenu() {
     const [pin, setPin] = useState("");
     const [error, setError] = useState("");
 
-    const API_BASE = "http://localhost:8001/api";
+    const API_BASE = "/api";
 
     const handleSetPin = async () => {
         if (!pinModalUser || !pin || pin.length !== 4) {
@@ -156,7 +156,7 @@ export default function UserMenu() {
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
                     <UserIcon size={16} />
                 </div>
-                <span>{activeUserId ? activeUserName : "Login"}</span>
+                <span>{activeUserId && users.find(u => u.id === activeUserId) ? activeUserName : "Login"}</span>
             </button>
 
             {/* Dropdown */}
@@ -179,7 +179,7 @@ export default function UserMenu() {
                             </button>
                         ))}
 
-                        {activeUserId && (
+                        {activeUserId && users.find(u => u.id === activeUserId) && (
                             <>
                                 <button
                                     onClick={() => {
