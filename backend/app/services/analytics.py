@@ -262,7 +262,10 @@ def get_portfolio_summary(session: Session, user_id: str):
 
     # Calculate XIRR
     try:
-        if not dates:
+        if not dates or not amounts:
+            xirr_val = 0.0
+        elif not any(a > 0 for a in amounts) or not any(a < 0 for a in amounts):
+            # PyXIRR requires at least one positive (inflow) and one negative (outflow/current value)
             xirr_val = 0.0
         else:
             xirr_val = xirr(dates, amounts)
