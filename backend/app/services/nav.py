@@ -1,5 +1,6 @@
 import requests
-from sqlmodel import Session, select, or_
+from sqlmodel import Session, select, or_, func
+from sqlalchemy.dialects.sqlite import insert
 from app.models.models import Scheme, NavHistory
 from datetime import datetime, date, timedelta
 import logging
@@ -162,3 +163,135 @@ def sync_navs(session: Session):
         logger.error(f"Failed to write NAV dump: {e}")
 
     return {"updated": updated_count, "errors": errors}
+
+def backfill_historical_nav(session: Session, scheme_id: int, amfi_code: str, force: bool = False):
+    """
+    Fetches historical NAV data using the Dual-Source Router logic.
+    """
+    from app.services.mfapi_client import fetch_amfi_date_nav
+    scheme = session.get(Scheme, scheme_id)
+    if not scheme:
+        return False
+        
+    logger.info(f"Evaluating backfill for scheme {scheme_id} (AMFI: {amfi_code}). Force={force}")
+    today = date.today()
+    
+    # 1. Throttle Check
+    if not force and scheme.last_history_sync:
+        gap_since_sync = (today - scheme.last_history_sync).days
+        if gap_since_sync <= 7:
+            logger.info(f"Skipping {amfi_code}. Last sync was {gap_since_sync} days ago.")
+            return True
+            
+    # 2. Calculate Gap
+    max_date = session.exec(
+        select(func.max(NavHistory.date)).where(NavHistory.scheme_id == scheme_id)
+    ).first()
+    
+    gap_days = (today - max_date).days if max_date else None
+    logger.info(f"Scheme {amfi_code} data gap: {gap_days} days. max_date: {max_date}")
+    
+    success = False
+    added_count = 0
+    
+    try:
+        if scheme.last_history_sync is None or gap_days is None or gap_days > 30:
+            # Route 1: Brand new sync or Massive Gap -> mfapi.in
+            logger.info(f"Routing {amfi_code} to mfapi.in (10-Year payload). Reason: last_sync={scheme.last_history_sync}, gap={gap_days}")
+            url = f"{MFAPI_BASE_URL}/{amfi_code}"
+            response = requests.get(url, timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                nav_list = data.get("data", [])
+                
+                nav_dicts = []
+                for item in nav_list:
+                    date_str = item.get("date")
+                    nav_val = float(item.get("nav"))
+                    date_obj = datetime.strptime(date_str, "%d-%m-%Y").date()
+                    
+                    # If we've never synced history, we need the full backfill so we must not filter by max_date.
+                    if scheme.last_history_sync is None or max_date is None or date_obj > max_date:
+                        nav_dicts.append({"scheme_id": scheme_id, "date": date_obj, "nav": nav_val})
+                
+                if nav_dicts:
+                    stmt = insert(NavHistory).values(nav_dicts)
+                    stmt = stmt.on_conflict_do_nothing(index_elements=['scheme_id', 'date'])
+                    session.exec(stmt)
+                    added_count = len(nav_dicts)
+                success = True
+        
+        elif gap_days > 0 and gap_days <= 30:
+            # Route 2: Maintenance Gap -> AMFI Scraper Loop
+            logger.info(f"Routing {amfi_code} to AMFI Scraper ({gap_days} days)")
+            nav_dicts = []
+            
+            for i in range(1, gap_days + 1):
+                target_date = max_date + timedelta(days=i)
+                # AMFI doesn't publish NAVs on weekends/holidays, so it may return None. That's fine.
+                nav_val = fetch_amfi_date_nav(amfi_code, target_date)
+                if nav_val is not None:
+                    nav_dicts.append({"scheme_id": scheme_id, "date": target_date, "nav": nav_val})
+            
+            if nav_dicts:
+                stmt = insert(NavHistory).values(nav_dicts)
+                stmt = stmt.on_conflict_do_nothing(index_elements=['scheme_id', 'date'])
+                session.exec(stmt)
+                added_count = len(nav_dicts)
+            success = True
+        else:
+            success = True # gap_days == 0
+            
+        # Update sync tracking
+        if success:
+            session.commit()
+            logger.info(f"Backfilled {added_count} NAV records for scheme {scheme_id}")
+            
+            # Record that we successfully attempted a sync today (even if 0 rows were added, stops infinite loops)
+            scheme.last_history_sync = today
+            
+            # Fix latest_nav cache dynamically from DB to ensure accuracy
+            latest = session.exec(
+                select(NavHistory).where(NavHistory.scheme_id == scheme_id).order_by(NavHistory.date.desc())
+            ).first()
+            
+            if latest:
+                scheme.latest_nav = latest.nav
+                scheme.latest_nav_date = latest.date
+                
+            session.add(scheme)
+            session.commit()
+            return True
+            
+    except Exception as e:
+        logger.error(f"Error backfilling history for {amfi_code}: {e}")
+        session.rollback()
+        
+    return False
+
+def backfill_all_schemes():
+    """
+    Finds all schemes that need historical backfill (e.g., those with only 1 history record)
+    and triggers the backfill process.
+    """
+    from app.db.engine import get_session
+    
+    # Needs its own session as it runs in a background task
+    session_gen = get_session()
+    session = next(session_gen)
+    
+    try:
+        schemes = session.exec(select(Scheme).where(Scheme.amfi_code != None)).all()
+        
+        for scheme in schemes:
+            # The backfill_historical_nav handles its own 7-day throttle checking.
+            # We just trigger it for everyone.
+            backfill_historical_nav(session, scheme.id, scheme.amfi_code)
+            time.sleep(0.5)
+    finally:
+        try:
+            next(session_gen)
+        except StopIteration:
+            pass
+

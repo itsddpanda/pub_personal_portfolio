@@ -1,6 +1,6 @@
 from typing import Optional, List
 from datetime import date as dt_date, datetime
-from sqlmodel import Field, SQLModel, Relationship
+from sqlmodel import Field, SQLModel, Relationship, UniqueConstraint
 from uuid import UUID, uuid4
 import hashlib
 
@@ -31,11 +31,16 @@ class Scheme(SQLModel, table=True):
     # Snapshot from CAS
     valuation_date: Optional[dt_date] = None
     valuation_value: Optional[float] = None
+    
+    # Backfill tracking (V1.4.1)
+    last_history_sync: Optional[dt_date] = None
 
     transactions: List["Transaction"] = Relationship(back_populates="scheme")
     nav_history: List["NavHistory"] = Relationship(back_populates="scheme")
 
 class NavHistory(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("scheme_id", "date", name="uix_scheme_date"),)
+    
     id: Optional[int] = Field(default=None, primary_key=True)
     scheme_id: int = Field(foreign_key="scheme.id")
     date: dt_date

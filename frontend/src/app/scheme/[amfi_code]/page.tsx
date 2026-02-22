@@ -2,8 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { getSchemeDetails } from '@/lib/api';
+import { getSchemeDetails, getSchemeHistory } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
+import { NAVChart } from '@/components/charts/NAVChart';
+
+interface NAVDataPoint {
+    date: string;
+    nav: number;
+}
 
 interface SchemeMeta {
     name: string;
@@ -47,7 +53,9 @@ export default function SchemeDetailsPage() {
     const amfiCode = params.amfi_code as string;
 
     const [data, setData] = useState<SchemeData | null>(null);
+    const [historyData, setHistoryData] = useState<NAVDataPoint[]>([]);
     const [loading, setLoading] = useState(true);
+    const [historyLoading, setHistoryLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -72,8 +80,41 @@ export default function SchemeDetailsPage() {
             }
         };
 
+        const fetchHistory = async () => {
+            setHistoryLoading(true);
+            try {
+                const res = await getSchemeHistory(amfiCode);
+                if (res && res.data) {
+                    setHistoryData(res.data);
+                }
+            } catch (err: any) {
+                console.error("Failed to fetch history:", err);
+            } finally {
+                setHistoryLoading(false);
+            }
+        };
+
         fetchDetails();
+        fetchHistory();
     }, [amfiCode, router]);
+
+    const handleRefreshHistory = async () => {
+        setHistoryLoading(true);
+        try {
+            // Hitting the backfill endpoint explicitly (assuming it exists, otherwise just re-fetch)
+            const res = await fetch(`/api/scheme/${amfiCode}/backfill`, { method: 'POST' });
+            if (res.ok) {
+                const historyRes = await getSchemeHistory(amfiCode);
+                if (historyRes && historyRes.data) {
+                    setHistoryData(historyRes.data);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to refresh history:", err);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -144,6 +185,15 @@ export default function SchemeDetailsPage() {
                         <p className="text-[11px] text-gray-400 mt-0.5">As of {scheme.latest_nav_date}</p>
                     </div>
                 </div>
+            </div>
+
+            {/* NAV History Chart */}
+            <div className="mb-10">
+                <NAVChart
+                    data={historyData}
+                    isLoading={historyLoading}
+                    onRefresh={handleRefreshHistory}
+                />
             </div>
 
             {/* Performance KPI Grid */}

@@ -1,0 +1,255 @@
+backend-1  | Starting periodic command scheduler: cron.
+backend-1  | Initializing database...
+backend-1  | wal
+backend-1  | Running initial NAV sync...
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | 2026-02-22 07:50:50,058 - sync_amfi - INFO - Starting AMFI bulk sync...
+backend-1  | 2026-02-22 07:50:50,121 - sync_amfi - INFO - Fetching NAV data from https://www.amfiindia.com/spages/NAVAll.txt
+backend-1  | 2026-02-22 07:50:50,641 - sync_amfi - INFO - Successfully cached payload to /data/NAVAll.txt
+backend-1  | 2026-02-22 07:50:50,642 - sync_amfi - INFO - Started processing 17536 lines of data
+backend-1  | 2026-02-22 07:50:51,401 - sync_amfi - INFO - Parsed 14275 valid scheme NAVs from AMFI
+backend-1  | 2026-02-22 07:50:51,403 - sync_amfi - INFO - Successfully updated 0 local schemes
+backend-1  | INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+backend-1  | INFO:     Started parent process [1]
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | 2026-02-22 07:50:52,134 - app - INFO - Logging initialized at INFO level
+backend-1  | 2026-02-22 07:50:52,134 - app - INFO - Logging initialized at INFO level
+backend-1  | INFO:     Started server process [25]
+backend-1  | INFO:     Waiting for application startup.
+backend-1  | INFO:     Application startup complete.
+backend-1  | INFO:     Started server process [24]
+backend-1  | INFO:     Waiting for application startup.
+backend-1  | INFO:     Application startup complete.
+backend-1  | 2026-02-22 07:52:13,079 - app.services.nav - INFO - Evaluating backfill for scheme 1 (AMFI: 146407). Force=False
+backend-1  | 2026-02-22 07:52:13,080 - app.services.nav - INFO - Scheme 146407 data gap: None days. max_date: None
+backend-1  | 2026-02-22 07:52:13,080 - app.services.nav - INFO - Routing 146407 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=None
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | 2026-02-22 07:52:13,337 - sync_amfi - INFO - Starting AMFI bulk sync...
+backend-1  | 2026-02-22 07:52:13,345 - sync_amfi - INFO - Skipping HTTP fetch. Last successful sync was only 0.0 hours ago. Using cached payload.
+backend-1  | 2026-02-22 07:52:13,444 - sync_amfi - INFO - Loading NAV data from disk cache at /data/NAVAll.txt
+backend-1  | 2026-02-22 07:52:13,449 - sync_amfi - INFO - Started processing 17536 lines of data
+backend-1  | 2026-02-22 07:52:13,492 - sync_amfi - INFO - Parsed 14275 valid scheme NAVs from AMFI
+backend-1  | 2026-02-22 07:52:13,536 - sync_amfi - INFO - Successfully updated 20 local schemes
+backend-1  | 2026-02-22 07:52:13,686 - app.services.nav - INFO - Backfilled 1729 NAV records for scheme 1
+backend-1  | 2026-02-22 07:52:14,230 - app.services.nav - INFO - Evaluating backfill for scheme 2 (AMFI: 120389). Force=False
+backend-1  | 2026-02-22 07:52:14,230 - app.services.nav - INFO - Scheme 120389 data gap: 0 days. max_date: 2026-02-22
+backend-1  | 2026-02-22 07:52:14,230 - app.services.nav - INFO - Routing 120389 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=0
+backend-1  | 2026-02-22 07:52:14,658 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 2
+backend-1  | 2026-02-22 07:52:15,263 - app.services.nav - INFO - Evaluating backfill for scheme 3 (AMFI: 145454). Force=False
+backend-1  | 2026-02-22 07:52:15,263 - app.services.nav - INFO - Scheme 145454 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:15,263 - app.services.nav - INFO - Routing 145454 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:15,514 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 3
+backend-1  | 2026-02-22 07:52:16,072 - app.services.nav - INFO - Evaluating backfill for scheme 4 (AMFI: 118968). Force=False
+backend-1  | 2026-02-22 07:52:16,072 - app.services.nav - INFO - Scheme 118968 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:16,072 - app.services.nav - INFO - Routing 118968 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:16,554 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 4
+backend-1  | 2026-02-22 07:52:17,106 - app.services.nav - INFO - Evaluating backfill for scheme 5 (AMFI: 151750). Force=False
+backend-1  | 2026-02-22 07:52:17,106 - app.services.nav - INFO - Scheme 151750 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:17,106 - app.services.nav - INFO - Routing 151750 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:17,316 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 5
+backend-1  | 2026-02-22 07:52:17,872 - app.services.nav - INFO - Evaluating backfill for scheme 6 (AMFI: 118950). Force=False
+backend-1  | 2026-02-22 07:52:17,873 - app.services.nav - INFO - Scheme 118950 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:17,873 - app.services.nav - INFO - Routing 118950 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:18,317 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 6
+backend-1  | 2026-02-22 07:52:18,872 - app.services.nav - INFO - Evaluating backfill for scheme 7 (AMFI: 130503). Force=False
+backend-1  | 2026-02-22 07:52:18,873 - app.services.nav - INFO - Scheme 130503 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:18,873 - app.services.nav - INFO - Routing 130503 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:19,224 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 7
+backend-1  | 2026-02-22 07:52:19,764 - app.services.nav - INFO - Evaluating backfill for scheme 8 (AMFI: 120621). Force=False
+backend-1  | 2026-02-22 07:52:19,765 - app.services.nav - INFO - Scheme 120621 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:19,765 - app.services.nav - INFO - Routing 120621 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:20,322 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 8
+backend-1  | 2026-02-22 07:52:20,881 - app.services.nav - INFO - Evaluating backfill for scheme 9 (AMFI: 120591). Force=False
+backend-1  | 2026-02-22 07:52:20,882 - app.services.nav - INFO - Scheme 120591 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:20,882 - app.services.nav - INFO - Routing 120591 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:21,251 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 9
+backend-1  | 2026-02-22 07:52:21,798 - app.services.nav - INFO - Evaluating backfill for scheme 10 (AMFI: 148481). Force=False
+backend-1  | 2026-02-22 07:52:21,799 - app.services.nav - INFO - Scheme 148481 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:21,799 - app.services.nav - INFO - Routing 148481 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:22,268 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 10
+backend-1  | 2026-02-22 07:52:22,807 - app.services.nav - INFO - Evaluating backfill for scheme 11 (AMFI: 119775). Force=False
+backend-1  | 2026-02-22 07:52:22,808 - app.services.nav - INFO - Scheme 119775 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:22,808 - app.services.nav - INFO - Routing 119775 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:23,154 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 11
+backend-1  | 2026-02-22 07:52:23,691 - app.services.nav - INFO - Evaluating backfill for scheme 12 (AMFI: 147704). Force=False
+backend-1  | 2026-02-22 07:52:23,691 - app.services.nav - INFO - Scheme 147704 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:23,691 - app.services.nav - INFO - Routing 147704 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:23,948 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 12
+backend-1  | 2026-02-22 07:52:24,500 - app.services.nav - INFO - Evaluating backfill for scheme 13 (AMFI: 127042). Force=False
+backend-1  | 2026-02-22 07:52:24,500 - app.services.nav - INFO - Scheme 127042 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:24,500 - app.services.nav - INFO - Routing 127042 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:24,852 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 13
+backend-1  | 2026-02-22 07:52:25,391 - app.services.nav - INFO - Evaluating backfill for scheme 14 (AMFI: 149329). Force=False
+backend-1  | 2026-02-22 07:52:25,392 - app.services.nav - INFO - Scheme 149329 data gap: 11 days. max_date: 2026-02-11
+backend-1  | 2026-02-22 07:52:25,392 - app.services.nav - INFO - Routing 149329 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=11
+backend-1  | 2026-02-22 07:52:25,791 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 14
+backend-1  | 2026-02-22 07:52:26,333 - app.services.nav - INFO - Evaluating backfill for scheme 15 (AMFI: 122639). Force=False
+backend-1  | 2026-02-22 07:52:26,334 - app.services.nav - INFO - Scheme 122639 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:26,334 - app.services.nav - INFO - Routing 122639 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:26,674 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 15
+backend-1  | 2026-02-22 07:52:27,209 - app.services.nav - INFO - Evaluating backfill for scheme 16 (AMFI: 120847). Force=False
+backend-1  | 2026-02-22 07:52:27,209 - app.services.nav - INFO - Scheme 120847 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:27,209 - app.services.nav - INFO - Routing 120847 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:27,541 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 16
+backend-1  | 2026-02-22 07:52:28,076 - app.services.nav - INFO - Evaluating backfill for scheme 17 (AMFI: 153705). Force=False
+backend-1  | 2026-02-22 07:52:28,076 - app.services.nav - INFO - Scheme 153705 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:28,076 - app.services.nav - INFO - Routing 153705 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:28,275 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 17
+backend-1  | 2026-02-22 07:52:28,809 - app.services.nav - INFO - Evaluating backfill for scheme 18 (AMFI: 120843). Force=False
+backend-1  | 2026-02-22 07:52:28,810 - app.services.nav - INFO - Scheme 120843 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:28,810 - app.services.nav - INFO - Routing 120843 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:29,277 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 18
+backend-1  | 2026-02-22 07:52:29,818 - app.services.nav - INFO - Evaluating backfill for scheme 19 (AMFI: 119835). Force=False
+backend-1  | 2026-02-22 07:52:29,818 - app.services.nav - INFO - Scheme 119835 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:29,818 - app.services.nav - INFO - Routing 119835 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 07:52:30,306 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 19
+backend-1  | 2026-02-22 07:52:30,843 - app.services.nav - INFO - Evaluating backfill for scheme 20 (AMFI: 135800). Force=False
+backend-1  | 2026-02-22 07:52:30,843 - app.services.nav - INFO - Scheme 135800 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 07:52:30,843 - app.services.nav - INFO - Routing 135800 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | 2026-02-22 07:52:31,205 - app.services.nav - INFO - Backfilled 0 NAV records for scheme 20
+backend-1  | 2026-02-22 07:52:31,272 - sync_amfi - INFO - Starting AMFI bulk sync...
+backend-1  | 2026-02-22 07:52:31,280 - sync_amfi - INFO - Skipping HTTP fetch. Last successful sync was only 0.0 hours ago. Using cached payload.
+backend-1  | 2026-02-22 07:52:31,309 - sync_amfi - INFO - Loading NAV data from disk cache at /data/NAVAll.txt
+backend-1  | 2026-02-22 07:52:31,313 - sync_amfi - INFO - Started processing 17536 lines of data
+backend-1  | 2026-02-22 07:52:31,355 - sync_amfi - INFO - Parsed 14275 valid scheme NAVs from AMFI
+backend-1  | 2026-02-22 07:52:31,362 - sync_amfi - INFO - Successfully updated 20 local schemes
+backend-1  | 2026-02-22 07:52:31,866 - app.services.nav - INFO - NAV sync dump written to /data/nav_sync_dump.json
+backend-1  | INFO:     Shutting down
+backend-1  | INFO:     Waiting for application shutdown.
+backend-1  | INFO:     Application shutdown complete.
+backend-1  | INFO:     Finished server process [24]
+backend-1  | INFO:     Shutting down
+backend-1  | INFO:     Waiting for application shutdown.
+backend-1  | INFO:     Application shutdown complete.
+backend-1  | INFO:     Finished server process [25]
+backend-1  | INFO:     Stopping parent process [1]
+backend-1  | Starting periodic command scheduler: cron.
+backend-1  | Initializing database...
+backend-1  | wal
+backend-1  | Running initial NAV sync...
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | 2026-02-22 07:58:11,114 - sync_amfi - INFO - Starting AMFI bulk sync...
+backend-1  | 2026-02-22 07:58:11,271 - sync_amfi - INFO - Fetching NAV data from https://www.amfiindia.com/spages/NAVAll.txt
+backend-1  | 2026-02-22 07:58:11,646 - sync_amfi - INFO - Successfully cached payload to /data/NAVAll.txt
+backend-1  | 2026-02-22 07:58:11,648 - sync_amfi - INFO - Started processing 17536 lines of data
+backend-1  | 2026-02-22 07:58:11,755 - sync_amfi - INFO - Parsed 14275 valid scheme NAVs from AMFI
+backend-1  | 2026-02-22 07:58:11,757 - sync_amfi - INFO - Successfully updated 0 local schemes
+backend-1  | INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+backend-1  | INFO:     Started parent process [1]
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | 2026-02-22 07:58:12,503 - app - INFO - Logging initialized at INFO level
+backend-1  | 2026-02-22 07:58:12,503 - app - INFO - Logging initialized at INFO level
+backend-1  | INFO:     Started server process [24]
+backend-1  | INFO:     Started server process [23]
+backend-1  | INFO:     Waiting for application startup.
+backend-1  | INFO:     Waiting for application startup.
+backend-1  | INFO:     Application startup complete.
+backend-1  | INFO:     Application startup complete.
+backend-1  | 2026-02-22 08:03:43,754 - app.services.nav - INFO - Evaluating backfill for scheme 1 (AMFI: 146407). Force=False
+backend-1  | 2026-02-22 08:03:43,755 - app.services.nav - INFO - Scheme 146407 data gap: None days. max_date: None
+backend-1  | 2026-02-22 08:03:43,755 - app.services.nav - INFO - Routing 146407 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=None
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | 2026-02-22 08:03:43,985 - sync_amfi - INFO - Starting AMFI bulk sync...
+backend-1  | 2026-02-22 08:03:43,993 - sync_amfi - INFO - Skipping HTTP fetch. Last successful sync was only 0.1 hours ago. Using cached payload.
+backend-1  | 2026-02-22 08:03:44,060 - sync_amfi - INFO - Loading NAV data from disk cache at /data/NAVAll.txt
+backend-1  | 2026-02-22 08:03:44,065 - sync_amfi - INFO - Started processing 17536 lines of data
+backend-1  | 2026-02-22 08:03:44,108 - sync_amfi - INFO - Parsed 14275 valid scheme NAVs from AMFI
+backend-1  | 2026-02-22 08:03:44,161 - sync_amfi - INFO - Successfully updated 20 local schemes
+backend-1  | 2026-02-22 08:03:44,336 - app.services.nav - INFO - Backfilled 1729 NAV records for scheme 1
+backend-1  | 2026-02-22 08:03:44,888 - app.services.nav - INFO - Evaluating backfill for scheme 2 (AMFI: 120389). Force=False
+backend-1  | 2026-02-22 08:03:44,888 - app.services.nav - INFO - Scheme 120389 data gap: 0 days. max_date: 2026-02-22
+backend-1  | 2026-02-22 08:03:44,888 - app.services.nav - INFO - Routing 120389 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=0
+backend-1  | 2026-02-22 08:03:45,662 - app.services.nav - INFO - Backfilled 4343 NAV records for scheme 2
+backend-1  | 2026-02-22 08:03:46,240 - app.services.nav - INFO - Evaluating backfill for scheme 3 (AMFI: 145454). Force=False
+backend-1  | 2026-02-22 08:03:46,240 - app.services.nav - INFO - Scheme 145454 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:46,240 - app.services.nav - INFO - Routing 145454 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:46,679 - app.services.nav - INFO - Backfilled 1759 NAV records for scheme 3
+backend-1  | 2026-02-22 08:03:47,231 - app.services.nav - INFO - Evaluating backfill for scheme 4 (AMFI: 118968). Force=False
+backend-1  | 2026-02-22 08:03:47,232 - app.services.nav - INFO - Scheme 118968 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:47,232 - app.services.nav - INFO - Routing 118968 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:47,721 - app.services.nav - INFO - Backfilled 3234 NAV records for scheme 4
+backend-1  | 2026-02-22 08:03:48,274 - app.services.nav - INFO - Evaluating backfill for scheme 5 (AMFI: 151750). Force=False
+backend-1  | 2026-02-22 08:03:48,274 - app.services.nav - INFO - Scheme 151750 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:48,274 - app.services.nav - INFO - Routing 151750 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:48,555 - app.services.nav - INFO - Backfilled 670 NAV records for scheme 5
+backend-1  | 2026-02-22 08:03:49,099 - app.services.nav - INFO - Evaluating backfill for scheme 6 (AMFI: 118950). Force=False
+backend-1  | 2026-02-22 08:03:49,099 - app.services.nav - INFO - Scheme 118950 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:49,099 - app.services.nav - INFO - Routing 118950 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:49,631 - app.services.nav - INFO - Backfilled 3234 NAV records for scheme 6
+backend-1  | 2026-02-22 08:03:50,175 - app.services.nav - INFO - Evaluating backfill for scheme 7 (AMFI: 130503). Force=False
+backend-1  | 2026-02-22 08:03:50,175 - app.services.nav - INFO - Scheme 130503 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:50,175 - app.services.nav - INFO - Routing 130503 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:50,673 - app.services.nav - INFO - Backfilled 2865 NAV records for scheme 7
+backend-1  | 2026-02-22 08:03:51,217 - app.services.nav - INFO - Evaluating backfill for scheme 8 (AMFI: 120621). Force=False
+backend-1  | 2026-02-22 08:03:51,217 - app.services.nav - INFO - Scheme 120621 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:51,217 - app.services.nav - INFO - Routing 120621 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:51,807 - app.services.nav - INFO - Backfilled 3233 NAV records for scheme 8
+backend-1  | 2026-02-22 08:03:52,384 - app.services.nav - INFO - Evaluating backfill for scheme 9 (AMFI: 120591). Force=False
+backend-1  | 2026-02-22 08:03:52,385 - app.services.nav - INFO - Scheme 120591 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:52,385 - app.services.nav - INFO - Routing 120591 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:52,874 - app.services.nav - INFO - Backfilled 3204 NAV records for scheme 9
+backend-1  | 2026-02-22 08:03:53,451 - app.services.nav - INFO - Evaluating backfill for scheme 10 (AMFI: 148481). Force=False
+backend-1  | 2026-02-22 08:03:53,452 - app.services.nav - INFO - Scheme 148481 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:53,452 - app.services.nav - INFO - Routing 148481 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:54,074 - app.services.nav - INFO - Backfilled 1328 NAV records for scheme 10
+backend-1  | 2026-02-22 08:03:54,668 - app.services.nav - INFO - Evaluating backfill for scheme 11 (AMFI: 119775). Force=False
+backend-1  | 2026-02-22 08:03:54,668 - app.services.nav - INFO - Scheme 119775 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:54,668 - app.services.nav - INFO - Routing 119775 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:55,208 - app.services.nav - INFO - Backfilled 3231 NAV records for scheme 11
+backend-1  | 2026-02-22 08:03:55,786 - app.services.nav - INFO - Evaluating backfill for scheme 12 (AMFI: 147704). Force=False
+backend-1  | 2026-02-22 08:03:55,786 - app.services.nav - INFO - Scheme 147704 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:55,786 - app.services.nav - INFO - Routing 147704 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:56,109 - app.services.nav - INFO - Backfilled 1564 NAV records for scheme 12
+backend-1  | 2026-02-22 08:03:56,653 - app.services.nav - INFO - Evaluating backfill for scheme 13 (AMFI: 127042). Force=False
+backend-1  | 2026-02-22 08:03:56,653 - app.services.nav - INFO - Scheme 127042 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:56,654 - app.services.nav - INFO - Routing 127042 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:57,201 - app.services.nav - INFO - Backfilled 2947 NAV records for scheme 13
+backend-1  | 2026-02-22 08:03:57,753 - app.services.nav - INFO - Evaluating backfill for scheme 14 (AMFI: 149329). Force=False
+backend-1  | 2026-02-22 08:03:57,754 - app.services.nav - INFO - Scheme 149329 data gap: 11 days. max_date: 2026-02-11
+backend-1  | 2026-02-22 08:03:57,754 - app.services.nav - INFO - Routing 149329 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=11
+backend-1  | 2026-02-22 08:03:58,068 - app.services.nav - INFO - Backfilled 972 NAV records for scheme 14
+backend-1  | 2026-02-22 08:03:58,612 - app.services.nav - INFO - Evaluating backfill for scheme 15 (AMFI: 122639). Force=False
+backend-1  | 2026-02-22 08:03:58,612 - app.services.nav - INFO - Scheme 122639 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:58,612 - app.services.nav - INFO - Routing 122639 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:03:59,110 - app.services.nav - INFO - Backfilled 3133 NAV records for scheme 15
+backend-1  | 2026-02-22 08:03:59,663 - app.services.nav - INFO - Evaluating backfill for scheme 16 (AMFI: 120847). Force=False
+backend-1  | 2026-02-22 08:03:59,663 - app.services.nav - INFO - Scheme 120847 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:03:59,663 - app.services.nav - INFO - Routing 120847 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:04:00,152 - app.services.nav - INFO - Backfilled 3236 NAV records for scheme 16
+backend-1  | 2026-02-22 08:04:00,738 - app.services.nav - INFO - Evaluating backfill for scheme 17 (AMFI: 153705). Force=False
+backend-1  | 2026-02-22 08:04:00,739 - app.services.nav - INFO - Scheme 153705 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:04:00,739 - app.services.nav - INFO - Routing 153705 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:04:01,105 - app.services.nav - INFO - Backfilled 141 NAV records for scheme 17
+backend-1  | 2026-02-22 08:04:01,705 - app.services.nav - INFO - Evaluating backfill for scheme 18 (AMFI: 120843). Force=False
+backend-1  | 2026-02-22 08:04:01,705 - app.services.nav - INFO - Scheme 120843 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:04:01,705 - app.services.nav - INFO - Routing 120843 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:04:02,604 - app.services.nav - INFO - Backfilled 3236 NAV records for scheme 18
+backend-1  | 2026-02-22 08:04:03,167 - app.services.nav - INFO - Evaluating backfill for scheme 19 (AMFI: 119835). Force=False
+backend-1  | 2026-02-22 08:04:03,167 - app.services.nav - INFO - Scheme 119835 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:04:03,167 - app.services.nav - INFO - Routing 119835 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:04:03,733 - app.services.nav - INFO - Backfilled 3238 NAV records for scheme 19
+backend-1  | /usr/local/lib/python3.11/site-packages/requests/__init__.py:109: RequestsDependencyWarning: urllib3 (2.6.3) or chardet (6.0.0dev0)/charset_normalizer (3.4.4) doesn't match a supported version!
+backend-1  |   warnings.warn(
+backend-1  | 2026-02-22 08:04:04,055 - sync_amfi - INFO - Starting AMFI bulk sync...
+backend-1  | 2026-02-22 08:04:04,063 - sync_amfi - INFO - Skipping HTTP fetch. Last successful sync was only 0.0 hours ago. Using cached payload.
+backend-1  | 2026-02-22 08:04:04,095 - sync_amfi - INFO - Loading NAV data from disk cache at /data/NAVAll.txt
+backend-1  | 2026-02-22 08:04:04,100 - sync_amfi - INFO - Started processing 17536 lines of data
+backend-1  | 2026-02-22 08:04:04,143 - sync_amfi - INFO - Parsed 14275 valid scheme NAVs from AMFI
+backend-1  | 2026-02-22 08:04:04,149 - sync_amfi - INFO - Successfully updated 20 local schemes
+backend-1  | 2026-02-22 08:04:04,258 - app.services.nav - INFO - Evaluating backfill for scheme 20 (AMFI: 135800). Force=False
+backend-1  | 2026-02-22 08:04:04,259 - app.services.nav - INFO - Scheme 135800 data gap: 2 days. max_date: 2026-02-20
+backend-1  | 2026-02-22 08:04:04,259 - app.services.nav - INFO - Routing 135800 to mfapi.in (10-Year payload). Reason: last_sync=None, gap=2
+backend-1  | 2026-02-22 08:04:04,613 - app.services.nav - INFO - NAV sync dump written to /data/nav_sync_dump.json
+backend-1  | 2026-02-22 08:04:04,675 - app.services.nav - INFO - Backfilled 2500 NAV records for scheme 20

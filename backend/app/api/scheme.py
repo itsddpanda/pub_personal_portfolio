@@ -172,3 +172,69 @@ def get_scheme_details(amfi_code: str, x_user_id: str = Header(None), session: S
         },
         "ledger": ledger
     }
+
+@router.get("/{amfi_code}/history")
+def get_scheme_history(amfi_code: str, session: Session = Depends(get_session)):
+    """
+    Returns the historical NAV data for a scheme, sorted by date.
+    Used for frontend charting.
+    """
+    scheme = session.exec(select(Scheme).where(Scheme.amfi_code == amfi_code)).first()
+    if not scheme:
+        raise HTTPException(status_code=404, detail="Scheme not found")
+        
+    # Fetch history from local DB
+    history = session.exec(
+        select(NavHistory)
+        .where(NavHistory.scheme_id == scheme.id)
+        .order_by(NavHistory.date)
+    ).all()
+    
+    # If history is empty, try a quick fetch from MFAPI for this specific scheme
+    if not history:
+         # Note: This is a synchronous fallback for the chart.
+         # The background task in CAS upload should have ideally handled this.
+         mfapi_data = fetch_scheme_data(amfi_code)
+         if mfapi_data:
+             history_tuples = extract_nav_history(mfapi_data)
+             nav_objs = [
+                 NavHistory(scheme_id=scheme.id, date=dt, nav=val)
+                 for dt, val in history_tuples
+             ]
+             session.add_all(nav_objs)
+             session.commit()
+             
+             # Re-fetch history
+             history = session.exec(
+                select(NavHistory)
+                .where(NavHistory.scheme_id == scheme.id)
+                .order_by(NavHistory.date)
+             ).all()
+
+    return {
+        "scheme_name": scheme.name,
+        "amfi_code": amfi_code,
+        "data": [
+            {"date": h.date.isoformat(), "nav": h.nav}
+            for h in history
+        ]
+    }
+
+@router.post("/{amfi_code}/backfill")
+def trigger_scheme_backfill(amfi_code: str, session: Session = Depends(get_session)):
+    """
+    Manually triggers a full historical NAV backfill for a specific scheme.
+    """
+    from app.services.nav import backfill_historical_nav
+    scheme = session.exec(select(Scheme).where(Scheme.amfi_code == amfi_code)).first()
+    
+    if not scheme:
+        raise HTTPException(status_code=404, detail="Scheme not found")
+        
+    success = backfill_historical_nav(session, scheme.id, amfi_code, force=True)
+    
+    if success:
+        return {"status": "success", "message": f"Backfill completed for {amfi_code}"}
+    else:
+        raise HTTPException(status_code=500, detail="Backfill failed or no data found")
+

@@ -80,3 +80,11 @@ export async function getSchemeDetails(amfiCode: string, xUserId: string) {
 
     return res.json();
 }
+
+export async function getSchemeHistory(amfiCode: string) {
+    const res = await fetch(`${API_BASE}/scheme/${amfiCode}/history`);
+    if (!res.ok) {
+        throw new Error('Failed to fetch scheme history');
+    }
+    return res.json();
+}

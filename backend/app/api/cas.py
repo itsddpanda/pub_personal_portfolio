@@ -14,6 +14,7 @@ import hashlib
 import subprocess
 
 from app.services.cas_service import process_cas_data
+from app.services.nav import backfill_all_schemes
 
 router = APIRouter()
 
@@ -70,6 +71,7 @@ async def upload_cas(
         # Trigger background sync if upload was successful and new schemes/txns might exist
         if result.get("status") == "success":
             background_tasks.add_task(trigger_background_sync)
+            background_tasks.add_task(backfill_all_schemes)
             
         return result
 

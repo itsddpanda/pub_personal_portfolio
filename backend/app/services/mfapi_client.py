@@ -63,3 +63,34 @@ def extract_nav_history(data: Dict[str, Any]) -> List[Tuple[date, float]]:
     # MFAPI returns descending by default. Sort ascending (oldest to newest)
     history.sort(key=lambda x: x[0])
     return history
+
+def fetch_amfi_date_nav(amfi_code: str, target_date: date) -> Optional[float]:
+    """
+    Scrapes the AMFI portal for a specific date's NAV for a specific scheme.
+    Highly optimized for single-day gap filling without downloading 10-year history.
+    """
+    try:
+        date_str = target_date.strftime("%d-%b-%Y") # Format: 16-Aug-2023
+        url = f"https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?frmdt={date_str}"
+        logger.info(f"Fetching AMFI single-day NAV for {amfi_code} on {date_str}")
+        
+        response = requests.get(url, timeout=10)
+        
+        if response.status_code == 200:
+            lines = response.text.splitlines()
+            for line in lines:
+                parts = line.split(";")
+                # Format: Scheme Code;Scheme Name;ISIN...;Net Asset Value;...
+                if len(parts) >= 5 and parts[0].strip() == amfi_code:
+                    nav_str = parts[4].strip()
+                    try:
+                        return float(nav_str)
+                    except ValueError:
+                        return None
+        else:
+            logger.warning(f"AMFI single-day API returned HTTP {response.status_code}")
+            
+    except Exception as e:
+        logger.error(f"Failed to fetch matching AMFI date nav: {e}")
+        
+    return None
