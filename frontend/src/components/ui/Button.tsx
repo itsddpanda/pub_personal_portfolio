@@ -14,13 +14,13 @@ export function Button({
     ...props
 }: ButtonProps) {
 
-    const baseStyles = "px-4 py-2 rounded font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+    const baseStyles = "px-4 py-2 flex justify-center items-center rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-950";
 
     const variants = {
-        primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500",
-        secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500",
-        danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
-        outline: "bg-transparent border border-blue-600 text-blue-600 hover:bg-blue-50 focus:ring-blue-500",
+        primary: "bg-indigo-600 text-white hover:bg-indigo-500 focus:ring-indigo-500 shadow-md dark:shadow-[0_0_15px_rgba(79,70,229,0.25)] hover:shadow-lg dark:hover:shadow-[0_0_20px_rgba(79,70,229,0.4)]",
+        secondary: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 focus:ring-slate-500 border border-slate-200 dark:border-white/5",
+        danger: "bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 focus:ring-red-500 border border-red-200 dark:border-red-500/20",
+        outline: "bg-transparent border border-indigo-200 dark:border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 focus:ring-indigo-500",
     };
 
     return (

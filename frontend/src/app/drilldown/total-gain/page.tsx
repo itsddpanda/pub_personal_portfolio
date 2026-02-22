@@ -55,78 +55,81 @@ export default function TotalGainDrilldownPage() {
     const isPositiveTotal = totalGain >= 0;
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-[calc(100vh-4rem)] bg-transparent p-6">
             <div className="max-w-6xl mx-auto space-y-6">
 
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">Total Gain Breakdown</h1>
-                        <p className="text-gray-500 text-sm mt-1">
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-200">Total Gain Breakdown</h1>
+                        <p className="text-slate-500 text-sm mt-1">
                             Calculated as (Current Value - Invested Value) for each scheme.
                         </p>
                     </div>
-                    <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                    <Button variant="outline" onClick={() => router.push('/dashboard')} className="border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 w-fit">
                         ← Back to Dashboard
                     </Button>
                 </div>
 
                 {/* Summary Card */}
-                <Card className={`${isPositiveTotal ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'} shadow-sm`}>
+                <Card className={`${isPositiveTotal ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20'} shadow-sm dark:shadow-xl backdrop-blur-md`}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between">
                         <div>
-                            <p className={`text-sm font-medium ${isPositiveTotal ? 'text-green-800' : 'text-red-800'}`}>Total Portfolio Gain</p>
-                            <p className={`text-3xl font-bold mt-1 ${isPositiveTotal ? 'text-green-600' : 'text-red-600'}`}>
+                            <p className={`text-sm font-semibold uppercase tracking-widest ${isPositiveTotal ? 'text-emerald-700 dark:text-emerald-500' : 'text-rose-700 dark:text-rose-500'}`}>Total Portfolio Gain</p>
+                            <p className={`text-4xl font-bold mt-2 font-mono tracking-tight drop-shadow-sm ${isPositiveTotal ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                 {isPositiveTotal ? '+' : ''}₹{totalGain.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                             </p>
                         </div>
                         <div className="mt-4 md:mt-0 text-right">
-                            <p className={`text-sm ${isPositiveTotal ? 'text-green-700' : 'text-red-700'}`}>Comprised of <strong>{holdings.length}</strong> active schemes</p>
-                            <p className={`text-xs mt-1 font-mono ${isPositiveTotal ? 'text-green-600' : 'text-red-600'}`}>Σ (Current Value - Invested Value)</p>
+                            <p className={`text-sm ${isPositiveTotal ? 'text-emerald-700 dark:text-emerald-400/80' : 'text-rose-700 dark:text-rose-400/80'}`}>Comprised of <strong className={isPositiveTotal ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{holdings.length}</strong> active schemes</p>
+                            <p className={`text-xs mt-1 font-mono tracking-tight ${isPositiveTotal ? 'text-emerald-600/70 dark:text-emerald-500/70' : 'text-rose-600/70 dark:text-rose-500/70'}`}>Σ (Current Value - Invested Value)</p>
                         </div>
                     </div>
                 </Card>
 
                 {/* Detailed Table */}
-                <Card title="Calculation Detail" className="overflow-hidden">
+                <Card title="Calculation Detail" className="overflow-hidden bg-white/90 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-xl p-0">
+                    <div className="p-6 pb-2 border-b border-slate-200 dark:border-white/5">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-200">Calculation Detail</h3>
+                    </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                        <table className="w-full divide-y divide-slate-100 dark:divide-white/5">
+                            <thead className="bg-slate-50 dark:bg-slate-950/50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheme</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Current Value</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider"></th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Invested Value</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider"></th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Absolute Gain</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Gain %</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">Scheme</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">Current Value</th>
+                                    <th className="px-2 py-4 text-center text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none"></th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">Invested Value</th>
+                                    <th className="px-2 py-4 text-center text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none"></th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest leading-none bg-slate-100 dark:bg-slate-800/20 border-l border-slate-200 dark:border-white/5">Absolute Gain</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest leading-none bg-slate-100 dark:bg-slate-800/20">Gain %</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {holdings.map((h) => {
                                     const gain = h.current_value - h.invested_value;
                                     const gainPercent = h.invested_value > 0 ? (gain / h.invested_value) * 100 : 0;
                                     const isPositive = gain >= 0;
 
                                     return (
-                                        <tr key={h.isin} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-4">
-                                                <p className="text-sm font-medium text-gray-900 line-clamp-2">{h.scheme_name}</p>
-                                                <p className="text-xs text-gray-400 mt-0.5 font-mono">{h.isin}</p>
+                                        <tr key={h.isin} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                            <td className="px-6 py-5">
+                                                <p className="text-sm font-medium text-slate-800 dark:text-slate-300 line-clamp-2 leading-relaxed">{h.scheme_name}</p>
+                                                <p className="text-xs text-slate-500 mt-1 font-mono">{h.isin}</p>
                                             </td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-right font-mono">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 dark:text-indigo-300 text-right font-mono tracking-tight">
                                                 ₹{h.current_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                                             </td>
-                                            <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-300 text-center">-</td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-right font-mono">
+                                            <td className="px-2 py-4 whitespace-nowrap text-xs text-slate-400 dark:text-slate-700 text-center font-mono">-</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 text-right font-mono tracking-tight">
                                                 ₹{h.invested_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                                             </td>
-                                            <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-300 text-center">=</td>
-                                            <td className={`px-4 py-4 whitespace-nowrap text-sm text-right font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                                            <td className="px-2 py-4 whitespace-nowrap text-xs text-slate-400 dark:text-slate-700 text-center font-mono">=</td>
+                                            <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-semibold font-mono tracking-tight bg-slate-50 dark:bg-slate-800/10 border-l border-slate-200 dark:border-white/5 group-hover:bg-slate-100 dark:group-hover:bg-slate-800/30 transition-colors ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                                 {isPositive ? '+' : ''}₹{gain.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                                             </td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                                                <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right bg-slate-50 dark:bg-slate-800/10 group-hover:bg-slate-100 dark:group-hover:bg-slate-800/30 transition-colors">
+                                                <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-mono font-medium border ${isPositive ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'}`}>
                                                     {isPositive ? '+' : ''}{gainPercent.toFixed(2)}%
                                                 </span>
                                             </td>
@@ -136,7 +139,7 @@ export default function TotalGainDrilldownPage() {
                             </tbody>
                         </table>
                         {holdings.length === 0 && (
-                            <div className="p-8 text-center text-gray-500">No active holdings found.</div>
+                            <div className="p-12 text-center text-slate-500">No active holdings found.</div>
                         )}
                     </div>
                 </Card>

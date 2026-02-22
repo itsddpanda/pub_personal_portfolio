@@ -52,76 +52,79 @@ export default function InvestedValueDrilldownPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-[calc(100vh-4rem)] bg-transparent p-6">
             <div className="max-w-5xl mx-auto space-y-6">
 
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">Invested Value Breakdown</h1>
-                        <p className="text-gray-500 text-sm mt-1">
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-200">Invested Value Breakdown</h1>
+                        <p className="text-slate-500 text-sm mt-1">
                             Calculated using FIFO (First-In-First-Out) cost basis for all accumulated active units.
                         </p>
                     </div>
-                    <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                    <Button variant="outline" onClick={() => router.push('/dashboard')} className="border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 w-fit">
                         ← Back to Dashboard
                     </Button>
                 </div>
 
                 {/* Summary Card */}
-                <Card className="bg-slate-50 border border-slate-200 shadow-sm">
+                <Card className="bg-white/90 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-xl">
                     <div className="flex flex-col md:flex-row md:items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-slate-800">Total Invested Value</p>
-                            <p className="text-3xl font-bold text-slate-900 mt-1">
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Invested Value</p>
+                            <p className="text-3xl font-bold text-slate-900 dark:text-slate-200 mt-1 drop-shadow-sm font-mono tracking-tight">
                                 ₹{totalInvested.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                             </p>
                         </div>
                         <div className="mt-4 md:mt-0 text-right">
-                            <p className="text-sm text-slate-700">Comprised of <strong>{holdings.length}</strong> active schemes</p>
-                            <p className="text-xs text-slate-500 mt-1 font-mono">Σ (FIFO Cost * Active Units)</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Comprised of <strong className="text-indigo-600 dark:text-indigo-400">{holdings.length}</strong> active schemes</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 font-mono">Σ (FIFO Cost * Active Units)</p>
                         </div>
                     </div>
                 </Card>
 
                 {/* Detailed Table */}
-                <Card title="Calculation Detail" className="overflow-hidden">
+                <Card title="Calculation Detail" className="overflow-hidden bg-white/90 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-xl p-0">
+                    <div className="p-6 pb-2 border-b border-slate-200 dark:border-white/5">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-200">Calculation Detail</h3>
+                    </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                        <table className="w-full divide-y divide-slate-100 dark:divide-white/5">
+                            <thead className="bg-slate-50 dark:bg-slate-950/50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheme</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estimation Status</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Invested Value</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">% Weight</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Scheme</th>
+                                    <th className="px-6 py-4 text-center text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Estimation Status</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Invested Value</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">% Weight</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {holdings.map((h) => {
                                     const weight = totalInvested > 0 ? (h.invested_value / totalInvested) * 100 : 0;
 
                                     return (
-                                        <tr key={h.isin} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-4">
-                                                <p className="text-sm font-medium text-gray-900 line-clamp-2">{h.scheme_name}</p>
-                                                <p className="text-xs text-gray-400 mt-0.5 font-mono">{h.isin}</p>
+                                        <tr key={h.isin} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                            <td className="px-6 py-5">
+                                                <p className="text-sm font-medium text-slate-800 dark:text-slate-300 line-clamp-2 leading-relaxed">{h.scheme_name}</p>
+                                                <p className="text-xs text-slate-500 mt-1 font-mono">{h.isin}</p>
                                             </td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-center">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
                                                 {h.is_estimated ? (
-                                                    <span className="inline-block px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-medium" title="Missing full transaction history">
-                                                        ⚠️ Estimated
+                                                    <span className="inline-block px-2.5 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-md text-[11px] font-bold uppercase tracking-wider" title="Missing full transaction history">
+                                                        ⚠ Estimated
                                                     </span>
                                                 ) : (
-                                                    <span className="inline-block px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                                                    <span className="inline-block px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20 rounded-md text-[11px] font-bold uppercase tracking-wider">
                                                         Exact (FIFO)
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-semibold">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 dark:text-slate-200 text-right font-mono font-semibold tracking-tight">
                                                 ₹{h.invested_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                                             </td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
-                                                <span className="inline-block px-2 py-1 bg-gray-100 rounded text-xs text-gray-600 font-medium">
+                                            <td className="px-6 py-4 whitespace-nowrap text-right">
+                                                <span className="inline-block px-2.5 py-1 bg-slate-100 dark:bg-slate-800/80 rounded-md text-xs text-slate-600 dark:text-slate-400 font-mono font-medium border border-slate-200 dark:border-white/5">
                                                     {weight.toFixed(1)}%
                                                 </span>
                                             </td>
@@ -131,7 +134,7 @@ export default function InvestedValueDrilldownPage() {
                             </tbody>
                         </table>
                         {holdings.length === 0 && (
-                            <div className="p-8 text-center text-gray-500">No active holdings found.</div>
+                            <div className="p-12 text-center text-slate-500">No active holdings found.</div>
                         )}
                     </div>
                 </Card>

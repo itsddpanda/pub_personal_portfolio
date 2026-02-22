@@ -49,10 +49,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                         key={toast.id}
                         onClick={() => removeToast(toast.id)}
                         className={`
-                            px-4 py-3 rounded-md shadow-lg text-white text-sm font-medium cursor-pointer transition-all transform translate-y-0
-                            ${toast.type === 'success' ? 'bg-green-600' : ''}
-                            ${toast.type === 'error' ? 'bg-red-600' : ''}
-                            ${toast.type === 'info' ? 'bg-blue-600' : ''}
+                            px-5 py-3.5 rounded-2xl shadow-2xl text-white text-sm font-bold cursor-pointer transition-all transform hover:scale-[1.02] active:scale-[0.98] border border-white/10
+                            ${toast.type === 'success' ? 'bg-emerald-600 dark:bg-emerald-500' : ''}
+                            ${toast.type === 'error' ? 'bg-rose-600 dark:bg-rose-500' : ''}
+                            ${toast.type === 'info' ? 'bg-indigo-600 dark:bg-indigo-500' : ''}
                         `}
                     >
                         {toast.message}

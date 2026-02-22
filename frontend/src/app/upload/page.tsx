@@ -109,32 +109,33 @@ export default function UploadPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md" title="Upload CAS PDF">
-                <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-transparent">
+            <Card className="w-full max-w-md border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl" title="Upload CAS PDF">
+                <form onSubmit={handleSubmit} className="space-y-5">
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
                             CAS PDF File
                         </label>
                         <input
                             type="file"
                             accept=".pdf"
                             onChange={handleFileChange}
-                            className="block w-full text-sm text-gray-500
-                file:mr-4 file:py-2 file:px-4
-                file:rounded-full file:border-0
+                            className="block w-full text-sm text-slate-600 dark:text-slate-400
+                file:mr-4 file:py-2.5 file:px-4
+                file:rounded-xl file:border-0
                 file:text-sm file:font-semibold
-                file:bg-blue-50 file:text-blue-700
-                hover:file:bg-blue-100"
+                file:bg-indigo-50 dark:file:bg-indigo-500/10 file:text-indigo-600 dark:file:text-indigo-400
+                hover:file:bg-indigo-100 dark:hover:file:bg-indigo-500/20 transition-colors file:cursor-pointer
+                border border-slate-200 dark:border-white/5 rounded-xl p-1 bg-slate-50 dark:bg-slate-950/50"
                         />
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-2 text-xs text-slate-500 leading-relaxed">
                             Download your Detailed Consolidated Account Statement from CAMS or KFintech.
                         </p>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
                             PDF Password
                         </label>
                         <div className="relative">
@@ -143,12 +144,12 @@ export default function UploadPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 placeholder="Enter PDF password"
-                                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 pr-10"
+                                className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-inner pr-10 transition-colors"
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-gray-700 focus:outline-none"
+                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 focus:outline-none transition-colors"
                             >
                                 {showPassword ? (
                                     <EyeOff size={18} />
@@ -160,7 +161,7 @@ export default function UploadPage() {
                     </div>
 
                     {error && (
-                        <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md">
+                        <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl">
                             {error}
                         </div>
                     )}
@@ -168,7 +169,7 @@ export default function UploadPage() {
                     <Button
                         type="submit"
                         isLoading={isLoading}
-                        className="w-full justify-center"
+                        className="w-full justify-center text-base py-3"
                         disabled={!file || !password || isLoading}
                     >
                         {phase === 'IDLE' ? "Upload & Analyze" :
@@ -179,8 +180,9 @@ export default function UploadPage() {
 
                 </form>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4 text-sm text-blue-700">
-                    💡 For accurate invested value, download a <strong>Detailed CAS from inception</strong> (not just the last year) from <a href="https://www.camsonline.com" target="_blank" rel="noopener noreferrer" className="underline">mycams.com</a> or <a href="https://www.kfintech.com" target="_blank" rel="noopener noreferrer" className="underline">kfintech.com</a>.
+                <div className="bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-4 mt-6 text-sm text-indigo-800 dark:text-indigo-300 leading-relaxed">
+                    <span className="text-xl inline-block mb-2">💡</span><br />
+                    For accurate invested value, download a <strong className="text-indigo-600 dark:text-indigo-200">Detailed CAS from inception</strong> (not just the last year) from <a href="https://www.camsonline.com" target="_blank" rel="noopener noreferrer" className="underline decoration-indigo-300 dark:decoration-indigo-500/30 hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">mycams.com</a> or <a href="https://www.kfintech.com" target="_blank" rel="noopener noreferrer" className="underline decoration-indigo-300 dark:decoration-indigo-500/30 hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">kfintech.com</a>.
                 </div>
             </Card>
         </div>

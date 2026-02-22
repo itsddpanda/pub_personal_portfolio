@@ -151,31 +151,31 @@ export default function UserMenu() {
             {/* Trigger */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none"
+                className="flex items-center space-x-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors focus:outline-none"
             >
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                <div className="w-8 h-8 md:w-9 md:h-9 bg-indigo-50 dark:bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-600 dark:text-indigo-400 ring-1 ring-indigo-500/20">
                     <UserIcon size={16} />
                 </div>
-                <span>{activeUserId && users.find(u => u.id === activeUserId) ? activeUserName : "Login"}</span>
+                <span className="hidden sm:inline-block">{activeUserId && users.find(u => u.id === activeUserId) ? activeUserName : "Login"}</span>
             </button>
 
             {/* Dropdown */}
             {isOpen && (
                 <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg py-1 z-20 border border-gray-100">
-                        <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">
+                    <div className="absolute right-0 mt-3 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl shadow-xl dark:shadow-[0_8px_30px_rgb(0,0,0,0.5)] py-2 z-20 border border-slate-200 dark:border-white/10 ring-1 ring-slate-900/5 dark:ring-white/5">
+                        <div className="px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                             {users.length > 0 ? "Select User" : "Upload CAS to create user"}
                         </div>
                         {users.map((user) => (
                             <button
                                 key={user.id}
                                 onClick={() => handleSwitchUser(user)}
-                                className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between hover:bg-gray-50 ${user.id === activeUserId ? "bg-blue-50 text-blue-700 font-medium" : "text-gray-700"
+                                className={`w-full text-left px-4 py-2.5 text-sm flex items-center justify-between transition-colors ${user.id === activeUserId ? "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 font-medium" : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
                                     }`}
                             >
                                 <span className="truncate">{user.name}</span>
-                                {user.is_pin_set && <Lock size={12} className="text-gray-400" />}
+                                {user.is_pin_set && <Lock size={12} className="text-slate-400 dark:text-slate-500" />}
                             </button>
                         ))}
 
@@ -191,9 +191,9 @@ export default function UserMenu() {
                                             setError(""); // Clear any previous error
                                         }
                                     }}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white flex items-center transition-colors"
                                 >
-                                    <Lock size={14} className="mr-2" />
+                                    <Lock size={14} className="mr-2 text-slate-400" />
                                     Set/Update PIN
                                 </button>
                                 {users.find(u => u.id === activeUserId)?.is_pin_set && (
@@ -207,17 +207,17 @@ export default function UserMenu() {
                                                 setError("");
                                             }
                                         }}
-                                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                                        className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white flex items-center transition-colors"
                                     >
-                                        <Unlock size={14} className="mr-2" />
+                                        <Unlock size={14} className="mr-2 text-slate-400" />
                                         Remove PIN
                                     </button>
                                 )}
-                                <div className="border-t border-gray-100 my-1" />
+                                <div className="border-t border-slate-100 dark:border-white/10 my-1 mx-2" />
 
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center"
+                                    className="w-full text-left px-4 py-2.5 text-sm text-rose-600 dark:text-red-400 hover:bg-rose-50 dark:hover:bg-red-500/10 hover:text-rose-700 dark:hover:text-red-300 flex items-center transition-colors"
                                 >
                                     <LogOut size={14} className="mr-2" />
                                     Logout
@@ -230,18 +230,18 @@ export default function UserMenu() {
 
             {/* PIN Modal */}
             {pinModalUser && (
-                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-                    <div className="bg-white rounded-lg shadow-xl p-6 w-80 max-w-full">
-                        <h3 className="text-lg font-semibold mb-4">
+                <div className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm z-[100] flex items-center justify-center">
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-6 w-80 max-w-full">
+                        <h3 className="text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100">
                             {isRemovingPin ? `Remove PIN for ${pinModalUser.name}` : isSettingPin ? `Set PIN for ${pinModalUser.name}` : "Enter PIN"}
                         </h3>
                         {isRemovingPin && (
-                            <p className="text-sm text-gray-500 mb-3">Enter your current PIN to confirm removal.</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">Enter your current PIN to confirm removal.</p>
                         )}
 
                         <input
                             type="password"
-                            className="w-full border border-gray-300 rounded px-3 py-2 mb-4 text-center tracking-widest text-lg font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                            className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-3 mb-4 text-center tracking-widest text-xl font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-inner"
                             maxLength={4}
                             value={pin}
                             onChange={(e) => setPin(e.target.value)}
@@ -250,18 +250,18 @@ export default function UserMenu() {
                             placeholder={isSettingPin ? "New 4-digit PIN" : "****"}
                         />
 
-                        {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+                        {error && <p className="text-red-500 dark:text-red-400 text-sm mb-4 px-1">{error}</p>}
 
                         <div className="flex justify-end space-x-3">
                             <button
                                 onClick={() => { setPinModalUser(null); setIsSettingPin(false); setIsRemovingPin(false); setPin(""); setError(""); }}
-                                className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+                                className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors text-sm font-medium"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={isRemovingPin ? handleRemovePin : isSettingPin ? handleSetPin : verifyPin}
-                                className={`px-4 py-2 text-white rounded text-sm ${isRemovingPin ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                className={`px-4 py-2 text-white rounded-xl text-sm font-medium transition-all shadow-lg ${isRemovingPin ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30' : 'bg-indigo-600 hover:bg-indigo-500 hover:shadow-indigo-500/25'}`}
                             >
                                 {isRemovingPin ? "Remove PIN" : isSettingPin ? "Save PIN" : "Verify"}
                             </button>

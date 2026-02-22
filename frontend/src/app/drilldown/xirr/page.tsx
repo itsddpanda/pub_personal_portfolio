@@ -64,97 +64,100 @@ export default function XirrDrilldownPage() {
     const isPositiveXirr = portfolioXirr >= 0;
 
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-[calc(100vh-4rem)] bg-transparent p-6">
             <div className="max-w-6xl mx-auto space-y-6">
 
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-800">XIRR (Extended Internal Rate of Return)</h1>
-                        <p className="text-gray-500 text-sm mt-1">
+                        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-200">XIRR (Extended Internal Rate of Return)</h1>
+                        <p className="text-slate-500 text-sm mt-1">
                             Time-weighted annualized return of your entire portfolio.
                         </p>
                     </div>
-                    <Button variant="outline" onClick={() => router.push('/dashboard')}>
+                    <Button variant="outline" onClick={() => router.push('/dashboard')} className="border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 w-fit">
                         ← Back to Dashboard
                     </Button>
                 </div>
 
                 {/* Summary Card */}
-                <Card className={`${isPositiveXirr ? 'bg-purple-50 border border-purple-200' : 'bg-red-50 border border-red-200'} shadow-sm`}>
+                <Card className={`${isPositiveXirr ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/20' : 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20'} shadow-sm dark:shadow-xl backdrop-blur-md`}>
                     <div className="flex flex-col md:flex-row md:items-start justify-between">
                         <div>
-                            <p className={`text-sm font-medium ${isPositiveXirr ? 'text-purple-800' : 'text-red-800'}`}>Portfolio Aggregate XIRR</p>
-                            <p className={`text-3xl font-bold mt-1 ${isPositiveXirr ? 'text-purple-600' : 'text-red-600'}`}>
+                            <p className={`text-sm font-semibold uppercase tracking-widest ${isPositiveXirr ? 'text-violet-700 dark:text-violet-500' : 'text-rose-700 dark:text-rose-500'}`}>Portfolio Aggregate XIRR</p>
+                            <p className={`text-5xl font-extrabold mt-3 font-mono tracking-tighter drop-shadow-md ${isPositiveXirr ? 'text-violet-600 dark:text-violet-400 drop-shadow-[0_0_15px_rgba(139,92,246,0.3)]' : 'text-rose-600 dark:text-rose-400'}`}>
                                 {isPositiveXirr ? '+' : ''}{portfolioXirr.toFixed(2)}%
                             </p>
                         </div>
                     </div>
                 </Card>
 
-                <div className="bg-blue-50 text-blue-800 p-4 rounded-md mb-6 text-sm flex gap-3">
-                    <span className="text-xl">ℹ️</span>
+                <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-300 p-5 rounded-2xl mb-6 text-sm flex gap-4 backdrop-blur-md shadow-sm">
+                    <span className="text-2xl">ℹ️</span>
                     <div>
-                        <p className="font-semibold mb-1">How XIRR Works</p>
-                        <p>
+                        <p className="font-bold mb-1.5 text-indigo-900 dark:text-indigo-200">How XIRR Works</p>
+                        <p className="leading-relaxed text-indigo-800/90 dark:text-indigo-300/80">
                             XIRR applies a strict time-weighted formula to every exact transaction date (SIPs, lumpsums, redemptions) to calculate your annualized return. Per-scheme XIRR is fully supported for investments held longer than 1 year with a clear entry and exit history.
                         </p>
                     </div>
                 </div>
 
                 {/* Detailed Table */}
-                <Card title="Per-Scheme XIRR Breakdown" className="overflow-hidden">
-                    <p className="text-sm text-gray-500 mb-4">
-                        Individual XIRR calculated based on exact historical cashflows.
-                    </p>
+                <Card title="Per-Scheme XIRR Breakdown" className="overflow-hidden bg-white/90 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-xl p-0">
+                    <div className="p-6 pb-4 border-b border-slate-200 dark:border-white/5">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-slate-200">Per-Scheme XIRR Breakdown</h3>
+                        <p className="text-sm text-slate-500 mt-1">
+                            Individual XIRR calculated based on exact historical cashflows.
+                        </p>
+                    </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                        <table className="w-full divide-y divide-slate-100 dark:divide-white/5">
+                            <thead className="bg-slate-50 dark:bg-slate-950/50">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Scheme</th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Invested Value</th>
-                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider"></th>
-                                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Per-Scheme XIRR</th>
+                                    <th className="px-6 py-4 text-left text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">Scheme</th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-none">Invested Value</th>
+                                    <th className="px-2 py-4 text-center text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest leading-none"></th>
+                                    <th className="px-6 py-4 text-right text-[10px] font-bold text-violet-600 dark:text-violet-400 uppercase tracking-widest leading-none bg-violet-50 dark:bg-violet-500/5 border-l border-slate-200 dark:border-white/5">Per-Scheme XIRR</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {holdings.map((h) => {
                                     const gain = h.current_value - h.invested_value;
                                     const gainPercent = h.invested_value > 0 ? (gain / h.invested_value) * 100 : 0;
                                     const isPositive = gain >= 0;
 
                                     return (
-                                        <tr key={h.isin} className="hover:bg-gray-50 transition-colors">
-                                            <td className="px-4 py-4">
-                                                <Link href={h.amfi_code ? `/scheme/${h.amfi_code}` : '#'} className="hover:underline text-blue-600 block">
-                                                    <p className="text-sm font-medium line-clamp-2">{h.scheme_name}</p>
+                                        <tr key={h.isin} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                            <td className="px-6 py-5">
+                                                <Link href={h.amfi_code ? `/scheme/${h.amfi_code}` : '#'} className="hover:underline hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-slate-800 dark:text-slate-300 block">
+                                                    <p className="text-sm font-medium line-clamp-2 leading-relaxed">{h.scheme_name}</p>
                                                 </Link>
-                                                <p className="text-xs text-gray-400 mt-0.5 font-mono">{h.isin}</p>
+                                                <p className="text-xs text-slate-500 mt-1 font-mono">{h.isin}</p>
                                             </td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 text-right font-mono">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 text-right font-mono tracking-tight">
                                                 ₹{h.invested_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                                             </td>
-                                            <td className="px-2 py-4 whitespace-nowrap text-sm text-gray-300 text-center">→</td>
-                                            <td className="px-4 py-4 whitespace-nowrap text-sm text-right">
+                                            <td className="px-2 py-4 whitespace-nowrap text-xs text-slate-400 dark:text-slate-700 text-center font-mono">→</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-right bg-violet-50/50 dark:bg-violet-500/[0.02] border-l border-slate-200 dark:border-white/5 group-hover:bg-violet-100 dark:group-hover:bg-violet-500/[0.05] transition-colors">
                                                 {h.xirr_status === 'VALID' && h.xirr !== undefined ? (
-                                                    <span className={`inline-block px-3 py-1 rounded text-sm font-bold ${h.xirr >= 0 ? 'bg-purple-100 text-purple-700' : 'bg-red-100 text-red-700'}`}>
+                                                    <span className={`inline-block px-3 py-1.5 rounded-lg text-sm font-bold font-mono tracking-tight border shadow-sm ${h.xirr >= 0 ? 'bg-violet-100 dark:bg-violet-500/10 text-violet-700 dark:text-violet-400 border-violet-200 dark:border-violet-500/20' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'}`}>
                                                         {h.xirr >= 0 ? '+' : ''}{h.xirr.toFixed(2)}%
                                                     </span>
                                                 ) : h.xirr_status === 'ESTIMATED' ? (
-                                                    <span className="inline-block px-2 py-1 bg-amber-100 text-amber-800 rounded text-xs font-medium" title="Cannot calculate XIRR without full transaction history.">
+                                                    <span className="inline-block px-2.5 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 rounded-md text-[11px] font-bold uppercase tracking-wider" title="Cannot calculate XIRR without full transaction history.">
                                                         N/A - Estimated
                                                     </span>
                                                 ) : h.xirr_status === 'LESS_THAN_1_YEAR' ? (
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="inline-block px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium mb-1" title="XIRR mathematically unreliable for <1 year.">
+                                                    <div className="flex flex-col items-end gap-1.5">
+                                                        <span className="inline-block px-2.5 py-1 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/5 rounded-md text-[11px] font-bold uppercase tracking-wider shadow-inner" title="XIRR mathematically unreliable for <1 year.">
                                                             N/A - &lt;1 Year
                                                         </span>
-                                                        <span className={`text-xs font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                                                        <span className={`text-[11px] font-mono tracking-normal font-medium ${isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                                             {isPositive ? '+' : ''}{gainPercent.toFixed(2)}% (Abs)
                                                         </span>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-gray-400 text-sm">Error</span>
+                                                    <span className="text-slate-400 dark:text-slate-600 text-[11px] font-bold uppercase tracking-wider">Error</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -163,7 +166,7 @@ export default function XirrDrilldownPage() {
                             </tbody>
                         </table>
                         {holdings.length === 0 && (
-                            <div className="p-8 text-center text-gray-500">No active holdings found.</div>
+                            <div className="p-12 text-center text-slate-500">No active holdings found.</div>
                         )}
                     </div>
                 </Card>
