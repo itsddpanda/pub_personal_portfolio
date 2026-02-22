@@ -9,6 +9,7 @@ DATA_DIR = os.path.join(os.path.dirname(BASE_DIR), "data")
 OUTPUT_FILE = os.path.join(DATA_DIR, "isin_amfi_map.json")
 AMFI_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
 
+
 def recover():
     print(f"Fetching latest AMFI data from {AMFI_URL}...")
     try:
@@ -28,14 +29,14 @@ def recover():
         parts = line.split(";")
         if len(parts) < 6:
             continue
-        
+
         amfi_code = parts[0].strip()
         isin1 = parts[1].strip()
         isin2 = parts[2].strip()
-        
+
         if not amfi_code.isdigit():
             continue
-        
+
         if isin1 and isin1 != "-":
             isin_map[isin1] = amfi_code
         if isin2 and isin2 != "-":
@@ -46,8 +47,9 @@ def recover():
 
     with open(OUTPUT_FILE, "w") as f:
         json.dump(isin_map, f, indent=2)
-    
+
     print(f"Successfully recovered {OUTPUT_FILE} with {len(isin_map)} mappings.")
+
 
 if __name__ == "__main__":
     recover()

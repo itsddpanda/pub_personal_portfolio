@@ -15,12 +15,13 @@ except Exception as e:
     print(f"Error loading map: {e}")
     exit(1)
 
+
 def fix_amfi_codes():
     with Session(engine) as session:
         # potential bug: amfi_code might be None or ""
         schemes = session.exec(select(Scheme)).all()
         updated_count = 0
-        
+
         for scheme in schemes:
             if not scheme.amfi_code:
                 # Try to find match
@@ -32,9 +33,10 @@ def fix_amfi_codes():
                     updated_count += 1
                 else:
                     print(f"No mapping found for {scheme.isin}")
-            
+
         session.commit()
         print(f"Done. Updated {updated_count} schemes.")
+
 
 if __name__ == "__main__":
     fix_amfi_codes()

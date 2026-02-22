@@ -13,7 +13,6 @@ from sqlmodel import Session, select
 from fastapi import HTTPException
 from app.models.models import User, Portfolio, Folio, Scheme, Transaction, AMC
 
-
 # Load ISIN Map
 ISIN_MAP = {}
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -35,89 +34,98 @@ try:
 except Exception as e:
     print(f"Warning: Failed to load ISIN map: {e}")
 
+
 def process_cas_data(
-    session: Session,
-    content: bytes,
-    password: str,
-    x_user_id: Optional[str] = None
+    session: Session, content: bytes, password: str, x_user_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Parses CAS PDF content and saves data to the database.
     """
-    
+
     # 1. Parse PDF
     data = None
     with io.BytesIO(content) as f:
         try:
             data = casparser.read_cas_pdf(f, password)
         except casparser.exceptions.CASParseError as e:
-             raise HTTPException(status_code=400, detail=f"Failed to parse CAS: {str(e)}")
+            raise HTTPException(
+                status_code=400, detail=f"Failed to parse CAS: {str(e)}"
+            )
         except casparser.exceptions.IncorrectPasswordError:
-             raise HTTPException(status_code=401, detail="Incorrect password.")
+            raise HTTPException(status_code=401, detail="Incorrect password.")
         except Exception as e:
-             print(f"BytesIO parse failed: {e}, retrying with temp file...")
-             with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
-                 tmp.write(content)
-                 tmp_path = tmp.name
-             try:
-                 data = casparser.read_cas_pdf(tmp_path, password)
-             finally:
-                 if os.path.exists(tmp_path):
+            print(f"BytesIO parse failed: {e}, retrying with temp file...")
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+                tmp.write(content)
+                tmp_path = tmp.name
+            try:
+                data = casparser.read_cas_pdf(tmp_path, password)
+            finally:
+                if os.path.exists(tmp_path):
                     os.remove(tmp_path)
-    
+
     if not data:
-        raise HTTPException(status_code=400, detail="Failed to extract data from CAS PDF.")
+        raise HTTPException(
+            status_code=400, detail="Failed to extract data from CAS PDF."
+        )
 
     # 1.5 Debug Schema Dump
     try:
         # Determine the best path depending on Docker vs standalone vs tests
-        schema_dump_dir = "/data" if os.path.exists("/data") else os.path.join(BASE_DIR, "data")
+        schema_dump_dir = (
+            "/data" if os.path.exists("/data") else os.path.join(BASE_DIR, "data")
+        )
         os.makedirs(schema_dump_dir, exist_ok=True)
-        
+
         # Serialize datetime and decimal objects safely
         from datetime import date as _date, datetime as _datetime
         from decimal import Decimal as _Decimal
+
         def _json_serial(obj):
             if isinstance(obj, (_datetime, _date)):
                 return obj.isoformat()
             if isinstance(obj, _Decimal):
                 return float(obj)
             raise TypeError(f"Type {type(obj)} not serializable")
-            
+
         schema_path = os.path.join(schema_dump_dir, "cas_schema.json")
         with open(schema_path, "w") as f:
             json.dump(data, f, indent=2, default=_json_serial)
     except Exception as e:
         print(f"Warning: Failed to write CAS debug schema dump: {e}")
-        pass # Do not fail the entire upload process
+        pass  # Do not fail the entire upload process
 
     # 2. Extract Investor Info
     # Validation: Ensure CAS Type is DETAILED
     cas_type = data.get("cas_type", "UNKNOWN")
     if cas_type != "DETAILED":
-         return {
+        return {
             "status": "error",
             "message": "Select Summary Type as Detailed (Includes transaction listing) for your Consolidate Account Statement. Current statement type is not supported",
-            "code": "INVALID_CAS_TYPE"
-         }
+            "code": "INVALID_CAS_TYPE",
+        }
 
     investor_info = data.get("investor_info", {})
     name = investor_info.get("name")
     full_pan = None
-    
+
     # Find PAN from investor_info or first folio
     full_pan = investor_info.get("pan")
-    
-    if not full_pan or full_pan == 'N/A':
+
+    if not full_pan or full_pan == "N/A":
         folios = data.get("folios", [])
         if not folios:
-             return {"status": "success", "message": "No folios found in CAS", "data": data}
-             
+            return {
+                "status": "success",
+                "message": "No folios found in CAS",
+                "data": data,
+            }
+
         for folio in folios:
             if folio.get("PAN"):
                 full_pan = folio.get("PAN")
                 break
-    
+
     if not full_pan:
         raise HTTPException(status_code=400, detail="Could not retrieve PAN from CAS.")
 
@@ -127,7 +135,9 @@ def process_cas_data(
             active_user_uuid = UUID(x_user_id)
             active_user = session.get(User, active_user_uuid)
             if active_user and active_user.pan != full_pan:
-                print(f"DEBUG: PAN Mismatch! Active: '{active_user.pan}' ({active_user.name}) vs Detected: '{full_pan}' ({name})")
+                print(
+                    f"DEBUG: PAN Mismatch! Active: '{active_user.pan}' ({active_user.name}) vs Detected: '{full_pan}' ({name})"
+                )
                 return {
                     "status": "warning",
                     "message": "PAN Mismatch Detected",
@@ -135,10 +145,10 @@ def process_cas_data(
                     "detected_pan": full_pan,
                     "detected_name": name,
                     "active_user_pan": active_user.pan,
-                    "active_user_name": active_user.name
+                    "active_user_name": active_user.name,
                 }
         except ValueError:
-            pass # Invalid UUID header, ignore
+            pass  # Invalid UUID header, ignore
 
     # 4. Get or Create User
     user = session.exec(select(User).where(User.pan == full_pan)).first()
@@ -147,9 +157,11 @@ def process_cas_data(
         session.add(user)
         session.commit()
         session.refresh(user)
-    
+
     # 5. Get or Create Portfolio (Default)
-    portfolio = session.exec(select(Portfolio).where(Portfolio.user_id == user.id)).first()
+    portfolio = session.exec(
+        select(Portfolio).where(Portfolio.user_id == user.id)
+    ).first()
     if not portfolio:
         portfolio = Portfolio(user_id=user.id, name="Main Portfolio")
         session.add(portfolio)
@@ -164,27 +176,28 @@ def process_cas_data(
     debug_data = {
         "user": {"name": user.name, "pan": user.pan},
         "portfolio_id": portfolio.id,
-        "folios": []
+        "folios": [],
     }
     # --- DEBUG DUMP END ---
 
     # 6. Process Folios & Schemes
     for folio_data in folios:
         folio_num = folio_data.get("folio")
-        
+
         # Get or Create Folio
-        folio_obj = session.exec(select(Folio).where(
-            Folio.portfolio_id == portfolio.id, 
-            Folio.folio_number == folio_num
-        )).first()
-        
+        folio_obj = session.exec(
+            select(Folio).where(
+                Folio.portfolio_id == portfolio.id, Folio.folio_number == folio_num
+            )
+        ).first()
+
         if not folio_obj:
             folio_obj = Folio(portfolio_id=portfolio.id, folio_number=folio_num)
             session.add(folio_obj)
             session.commit()
             session.refresh(folio_obj)
 
-        folio_debug = {"folio": folio_num, "schemes": []} # DEBUG
+        folio_debug = {"folio": folio_num, "schemes": []}  # DEBUG
 
         # 4. Process Schemes
         for scheme_data in folio_data.get("schemes", []):
@@ -199,20 +212,22 @@ def process_cas_data(
                     isin = match.group(1)
                 else:
                     # If we still don't have ISIN, we can't process this scheme
-                    print(f"Warning: Skipping scheme '{scheme_name_raw}' - ISIN not found.")
+                    print(
+                        f"Warning: Skipping scheme '{scheme_name_raw}' - ISIN not found."
+                    )
                     continue
-            
+
             # Requirement 1: Strip ISIN suffix if present for display/storage
             scheme_name = re.sub(r"\s*-\s*ISIN:\s*[A-Z0-9]{12}", "", scheme_name_raw)
-            
+
             # Lookup AMFI Code if missing
             if not amfi and isin:
                 amfi = ISIN_MAP.get(isin)
-            
+
             # Extract and Normalize AMC Name
             raw_amc = folio_data.get("amc", "").strip()
             amc_obj = None
-            
+
             if raw_amc:
                 norm_name = raw_amc.replace("Mutual Fund", "").strip()
                 amc_obj = session.exec(select(AMC).where(AMC.name == norm_name)).first()
@@ -225,7 +240,7 @@ def process_cas_data(
 
             # Check if Scheme Exists
             scheme_obj = session.exec(select(Scheme).where(Scheme.isin == isin)).first()
-            
+
             # Extract Valuation Data
             val_data = scheme_data.get("valuation", {})
             val_date = None
@@ -235,7 +250,9 @@ def process_cas_data(
                 if val_date_raw:
                     if isinstance(val_date_raw, str):
                         try:
-                            val_date = datetime.strptime(val_date_raw, "%Y-%m-%d").date()
+                            val_date = datetime.strptime(
+                                val_date_raw, "%Y-%m-%d"
+                            ).date()
                         except ValueError:
                             pass
                     else:
@@ -257,7 +274,7 @@ def process_cas_data(
                     advisor=advisor,
                     amc_id=amc_obj.id if amc_obj else None,
                     valuation_date=val_date,
-                    valuation_value=val_value
+                    valuation_value=val_value,
                 )
                 session.add(scheme_obj)
                 session.commit()
@@ -267,27 +284,27 @@ def process_cas_data(
                 if not scheme_obj.amc_id and amc_obj:
                     scheme_obj.amc_id = amc_obj.id
                     updated = True
-                
+
                 # Update latest valuation snapshot
                 if val_date:
                     scheme_obj.valuation_date = val_date
                     scheme_obj.valuation_value = val_value
                     updated = True
-                
+
                 if advisor and not scheme_obj.advisor:
                     scheme_obj.advisor = advisor
                     updated = True
-                
+
                 # Backfill AMFI Code if missing
                 if not scheme_obj.amfi_code and amfi:
                     scheme_obj.amfi_code = amfi
                     updated = True
-                    
+
                 if updated:
                     session.add(scheme_obj)
                     session.commit()
-            
-            scheme_debug = { # DEBUG
+
+            scheme_debug = {  # DEBUG
                 "scheme": scheme_name,
                 "isin": isin,
                 "amfi": amfi,
@@ -295,10 +312,10 @@ def process_cas_data(
                 "advisor": advisor,
                 "units": {
                     "open": scheme_data.get("open"),
-                    "close": scheme_data.get("close")
-                }, 
+                    "close": scheme_data.get("close"),
+                },
                 "valuation": {"date": val_date, "value": val_value},
-                "transactions": []
+                "transactions": [],
             }
 
             # Synthetic OPENING_BALANCE Transaction
@@ -317,13 +334,13 @@ def process_cas_data(
                 start_date = None
                 if from_date_str:
                     try:
-                         # casparser formats usually: 01-Apr-2023 or similar
-                         # Try a few common formats or generic parser if needed
-                         # But for now assuming standard CAS format
-                         start_date = datetime.strptime(from_date_str, "%d-%b-%Y").date()
+                        # casparser formats usually: 01-Apr-2023 or similar
+                        # Try a few common formats or generic parser if needed
+                        # But for now assuming standard CAS format
+                        start_date = datetime.strptime(from_date_str, "%d-%b-%Y").date()
                     except ValueError:
                         pass
-                
+
                 if not start_date:
                     start_date = datetime(2000, 1, 1).date()
 
@@ -334,72 +351,80 @@ def process_cas_data(
                     date=start_date,
                     amount=0.0,
                     type="OPENING_BALANCE",
-                    units=open_units
+                    units=open_units,
                 )
 
                 if not session.get(Transaction, op_txn_id):
-                     # Check if we already have historical transactions (meaning we have broader history)
-                     prior_txns = session.exec(select(Transaction).where(
-                         Transaction.scheme_id == scheme_obj.id,
-                         Transaction.folio_id == folio_obj.id,
-                         Transaction.date < start_date
-                     )).first()
+                    # Check if we already have historical transactions (meaning we have broader history)
+                    prior_txns = session.exec(
+                        select(Transaction).where(
+                            Transaction.scheme_id == scheme_obj.id,
+                            Transaction.folio_id == folio_obj.id,
+                            Transaction.date < start_date,
+                        )
+                    ).first()
 
-                     if prior_txns:
-                         print(f"Skipping synthetic OPENING_BALANCE for {scheme_obj.name} as prior history exists.")
-                         scheme_debug["transactions"].append({
-                            "id": op_txn_id,
-                            "date": start_date.isoformat(),
-                            "amount": 0.0,
-                            "units": open_units,
-                            "type": "OPENING_BALANCE",
-                            "status": "skipped (prior history exists)"
-                         })
-                     else:
-                         op_txn = Transaction(
+                    if prior_txns:
+                        print(
+                            f"Skipping synthetic OPENING_BALANCE for {scheme_obj.name} as prior history exists."
+                        )
+                        scheme_debug["transactions"].append(
+                            {
+                                "id": op_txn_id,
+                                "date": start_date.isoformat(),
+                                "amount": 0.0,
+                                "units": open_units,
+                                "type": "OPENING_BALANCE",
+                                "status": "skipped (prior history exists)",
+                            }
+                        )
+                    else:
+                        op_txn = Transaction(
                             id=op_txn_id,
                             folio_id=folio_obj.id,
                             scheme_id=scheme_obj.id,
                             date=start_date,
                             type="OPENING_BALANCE",
-                            amount=0.0, 
+                            amount=0.0,
                             units=open_units,
                             nav=0.0,
-                            balance=open_units
-                         )
-                         session.add(op_txn)
-                         new_txns_count += 1
-                         
-                         scheme_debug["transactions"].append({
-                            "id": op_txn_id,
-                            "date": start_date.isoformat(),
-                            "amount": 0.0,
-                            "units": open_units,
-                            "type": "OPENING_BALANCE",
-                            "status": "new (synthetic)"
-                         })
+                            balance=open_units,
+                        )
+                        session.add(op_txn)
+                        new_txns_count += 1
+
+                        scheme_debug["transactions"].append(
+                            {
+                                "id": op_txn_id,
+                                "date": start_date.isoformat(),
+                                "amount": 0.0,
+                                "units": open_units,
+                                "type": "OPENING_BALANCE",
+                                "status": "new (synthetic)",
+                            }
+                        )
 
             # Process Transactions
             transactions = scheme_data.get("transactions", [])
-            min_real_date = None # Track earliest real txn date
-            
+            min_real_date = None  # Track earliest real txn date
+
             for txn in transactions:
                 date_val = txn.get("date")
-                
+
                 if isinstance(date_val, str):
                     date_obj = datetime.strptime(date_val, "%Y-%m-%d").date()
                 else:
                     date_obj = date_val
-                
+
                 if not min_real_date or date_obj < min_real_date:
                     min_real_date = date_obj
-                    
+
                 amount = float(txn.get("amount", 0))
                 units = float(txn.get("units", 0) or 0)
                 nav = float(txn.get("nav", 0) or 0)
                 txn_type = txn.get("type")
                 balance = float(txn.get("balance", 0) or 0)
-                
+
                 # Generate Hash
                 txn_id = Transaction.generate_id(
                     pan=full_pan,
@@ -407,28 +432,28 @@ def process_cas_data(
                     date=date_obj,
                     amount=amount,
                     type=txn_type,
-                    units=units
+                    units=units,
                 )
-                
+
                 # Check Deduplication
                 existing_txn = session.get(Transaction, txn_id)
-                
-                txn_debug_entry = { # DEBUG
+
+                txn_debug_entry = {  # DEBUG
                     "id": txn_id,
                     "date": date_obj.isoformat(),
                     "amount": amount,
                     "units": units,
                     "type": txn_type,
                     "balance": balance,
-                    "status": "new"
+                    "status": "new",
                 }
 
                 if existing_txn:
                     skipped_txns_count += 1
-                    txn_debug_entry["status"] = "skipped" # DEBUG
-                    scheme_debug["transactions"].append(txn_debug_entry) # DEBUG
+                    txn_debug_entry["status"] = "skipped"  # DEBUG
+                    scheme_debug["transactions"].append(txn_debug_entry)  # DEBUG
                     continue
-                    
+
                 # Insert New Transaction
                 new_txn = Transaction(
                     id=txn_id,
@@ -439,44 +464,50 @@ def process_cas_data(
                     amount=amount,
                     units=units,
                     nav=nav,
-                    balance=balance
+                    balance=balance,
                 )
                 session.add(new_txn)
                 new_txns_count += 1
-                scheme_debug["transactions"].append(txn_debug_entry) # DEBUG
-            
+                scheme_debug["transactions"].append(txn_debug_entry)  # DEBUG
+
             # --- RECONCILIATION logic ---
             # If we imported real transactions, check if they "precede" an existing OPENING_BALANCE
             if min_real_date:
                 # Find any OPENING_BALANCE for this scheme occurring strictly AFTER min_real_date
-                to_delete = session.exec(select(Transaction).where(
-                    Transaction.scheme_id == scheme_obj.id,
-                    Transaction.folio_id == folio_obj.id,
-                    Transaction.type == "OPENING_BALANCE",
-                    Transaction.date > min_real_date
-                )).all()
-                
+                to_delete = session.exec(
+                    select(Transaction).where(
+                        Transaction.scheme_id == scheme_obj.id,
+                        Transaction.folio_id == folio_obj.id,
+                        Transaction.type == "OPENING_BALANCE",
+                        Transaction.date > min_real_date,
+                    )
+                ).all()
+
                 if to_delete:
                     reconciled_count += len(to_delete)
-                    print(f"RECONCILE: Removing {len(to_delete)} redundant Opening Balances for {scheme_obj.name}")
+                    print(
+                        f"RECONCILE: Removing {len(to_delete)} redundant Opening Balances for {scheme_obj.name}"
+                    )
                     for d_txn in to_delete:
                         session.delete(d_txn)
-            
-            folio_debug["schemes"].append(scheme_debug) # DEBUG
-        
-        debug_data["folios"].append(folio_debug) # DEBUG
-    
+
+            folio_debug["schemes"].append(scheme_debug)  # DEBUG
+
+        debug_data["folios"].append(folio_debug)  # DEBUG
+
     # 7. Debug Import Schema Dump
     try:
-        import_dump_dir = "/data" if os.path.exists("/data") else os.path.join(BASE_DIR, "data")
+        import_dump_dir = (
+            "/data" if os.path.exists("/data") else os.path.join(BASE_DIR, "data")
+        )
         os.makedirs(import_dump_dir, exist_ok=True)
         import_path = os.path.join(import_dump_dir, "cas_import.json")
-        
+
         with open(import_path, "w") as f:
             json.dump(debug_data, f, indent=2, default=str)
     except Exception as e:
         print(f"Warning: Failed to write CAS debug import dump: {e}")
-        pass # Do not fail the entire upload process
+        pass  # Do not fail the entire upload process
 
     session.commit()
 
@@ -487,5 +518,5 @@ def process_cas_data(
         "pan": full_pan,
         "new_transactions": new_txns_count,
         "skipped_transactions": skipped_txns_count,
-        "reconciled_opening_balances": reconciled_count
+        "reconciled_opening_balances": reconciled_count,
     }
