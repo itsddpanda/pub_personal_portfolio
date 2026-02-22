@@ -13,11 +13,15 @@ from app.core.logging_config import setup_logging
 # Initialize centralized logging
 logger = setup_logging()
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     yield
 
-app = FastAPI(title="Mutual Fund Analyzer API", lifespan=lifespan, redirect_slashes=False)
+
+app = FastAPI(
+    title="Mutual Fund Analyzer API", lifespan=lifespan, redirect_slashes=False
+)
 
 import os
 
@@ -38,6 +42,7 @@ app.include_router(analytics_router, prefix="/api/analytics", tags=["Analytics"]
 app.include_router(users_router, prefix="/api/users", tags=["Users"])
 app.include_router(status_router, prefix="/api/status", tags=["Status"])
 app.include_router(scheme_router, prefix="/api/scheme", tags=["Scheme"])
+
 
 @app.get("/api/health")
 def health_check():
