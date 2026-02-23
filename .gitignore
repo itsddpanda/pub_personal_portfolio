@@ -52,6 +52,4 @@ get_cas_schema.py
 
 # Docs & local notes (not for version control)
 docs/*
-review_comments.json
-useful commands.json
 backend/tests/*
