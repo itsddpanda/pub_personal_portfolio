@@ -51,6 +51,7 @@ get_cas_schema.py
 *.txt
 
 # Docs & local notes (not for version control)
-docs/
+docs/*
+docs/specs/mutual_fund_analyzer_PRD.md
 review_comments.json
 useful commands.json
