@@ -50,6 +50,4 @@ rca_compare.py
 get_cas_schema.py
 *.txt
 
-# Docs & local notes (not for version control)
 docs/*
-backend/tests/*
