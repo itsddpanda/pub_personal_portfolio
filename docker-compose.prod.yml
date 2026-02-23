@@ -1,0 +1,25 @@
+services:
+  backend:
+    image: ghcr.io/itsddpanda/private_fund_analyzer-backend:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./data:/data
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8001/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    image: ghcr.io/itsddpanda/private_fund_analyzer-frontend:latest
+    ports:
+      - "3001:3001"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
