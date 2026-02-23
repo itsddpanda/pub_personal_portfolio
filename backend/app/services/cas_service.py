@@ -218,7 +218,9 @@ def process_cas_data(
                     continue
 
             # Requirement 1: Strip ISIN suffix if present for display/storage
-            scheme_name = re.sub(r"\s*-\s*ISIN:\s*[A-Z0-9\s]+", "", scheme_name_raw).strip()
+            scheme_name = re.sub(
+                r"\s*-\s*ISIN:\s*[A-Z0-9\s]+", "", scheme_name_raw
+            ).strip()
 
             # Lookup AMFI Code if missing
             if not amfi and isin:
