@@ -2,9 +2,9 @@ name: Code Quality (Lint & Format)
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
-    branches: [main, dev, PRODUCTION]
+    branches: [main]
 
 jobs:
   backend-lint:
