@@ -21,6 +21,10 @@ sqlite3 /data/mfa.db "PRAGMA journal_mode=WAL;"
 echo "Running initial NAV sync..."
 /usr/local/bin/python /app/scripts/sync_amfi.py
 
+# Generate ISIN -> AMFI code map from the freshly downloaded NAVAll.txt
+echo "Generating ISIN map..."
+/usr/local/bin/python -c "from app.utils.master_data import generate_isin_map; generate_isin_map()"
+
 # Run the main uvicorn application
 exec uvicorn main:app --host 0.0.0.0 --port 8001 --workers 2
 

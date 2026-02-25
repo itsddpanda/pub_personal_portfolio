@@ -4,7 +4,7 @@ services:
     container_name: pfa-backend
     # Port NOT exposed to host — frontend proxies API calls internally via Next.js rewrites
     volumes:
-      - ./data:/data
+      - back_data:/data
     env_file:
       - .env
     restart: unless-stopped
@@ -24,3 +24,7 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+
+volumes:
+  back_data:
+    name: pfa-back-data
