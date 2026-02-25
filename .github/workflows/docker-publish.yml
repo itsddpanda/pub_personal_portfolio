@@ -13,7 +13,7 @@ jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
       # This is used to complete the identity challenge
       # with sigstore/fulcio when running outside of PRs.
@@ -99,3 +99,9 @@ jobs:
           TAGS: ${{ steps.meta-frontend.outputs.tags }}
           DIGEST: ${{ steps.build-and-push-frontend.outputs.digest }}
         run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
+
+      # Attach docker-compose.prod.yml to the release for easy deployment
+      - name: Upload docker-compose.prod.yml as release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: docker-compose.prod.yml
