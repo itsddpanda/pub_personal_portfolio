@@ -52,4 +52,5 @@ get_cas_schema.py
 
 # Docs & local notes (not for version control)
 docs/*
+!docs/specs/
 backend/tests/*
