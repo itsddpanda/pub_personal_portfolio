@@ -4,44 +4,38 @@ A personal portfolio analyzer for Indian mutual funds. Upload your CAMS/KARVY Co
 
 ---
 
-## 🐳 Deploy with Pre-built Docker Images (Recommended)
+## ⚡ Quick Setup
 
-No code checkout or build required. Just download and run.
-
-### Prerequisites
-- [Docker](https://docs.docker.com/get-docker/) >= 24
-- [Docker Compose](https://docs.docker.com/compose/) >= 2.20
-
-### Steps
+The easiest way to get started is via the setup script, which handles dependency checks, file creation, and service startup automatically:
 
 ```bash
-# 1. Download the production compose file
-curl -LO https://github.com/itsddpanda/Private_fund_analyzer/releases/latest/download/docker-compose.prod.yml
+# One-liner (no repo clone needed)
+curl -fsSL https://raw.githubusercontent.com/itsddpanda/Private_fund_analyzer/PRODUCTION/setup.sh | bash -s -- docker
 
-# 2. Create a data directory for the database
-mkdir -p data
-
-# 3. Create the backend environment file
-curl -LO https://raw.githubusercontent.com/itsddpanda/Private_fund_analyzer/PRODUCTION/backend/.env.example
-mv .env.example .env
-# Edit .env if needed (defaults work out of the box)
-
-# 4. Pull and start the app
-docker compose -f docker-compose.prod.yml up -d
-
-# 5. Open the app
-open http://localhost:3001
+# Or clone first and run interactively
+git clone https://github.com/itsddpanda/Private_fund_analyzer.git && cd Private_fund_analyzer
+chmod +x setup.sh && ./setup.sh
 ```
 
-The backend API is available at `http://localhost:8001/api`.  
-API docs (Swagger UI) at `http://localhost:8001/docs`.
+**Modes available:**
 
-### Docker Images
+| Mode | Command | Description |
+|------|---------|-------------|
+| `docker` | `./setup.sh docker` | Pull pre-built images from GHCR *(recommended)* |
+| `local` | `./setup.sh local` | Build from source using Docker Compose |
+| `dev` | `./setup.sh dev` | Local development — Python + Node, no Docker |
+
+---
+
+## 🐳 Docker Images
 
 | Image | URL |
 |-------|-----|
 | Backend | `ghcr.io/itsddpanda/private_fund_analyzer-backend:latest` |
 | Frontend | `ghcr.io/itsddpanda/private_fund_analyzer-frontend:latest` |
+
+The backend API is available at `http://localhost:8001/api`.  
+API docs (Swagger UI) at `http://localhost:8001/docs`.
 
 ---
 
@@ -56,52 +50,6 @@ API docs (Swagger UI) at `http://localhost:8001/docs`.
 
 ---
 
-## 🚀 Build from Source (Docker Compose)
-
-### Prerequisites
-- [Docker](https://docs.docker.com/get-docker/) >= 24
-- [Docker Compose](https://docs.docker.com/compose/) >= 2.20
-
-### Steps
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/itsddpanda/Private_fund_analyzer.git && cd Private_fund_analyzer
-
-# 2. Create backend environment file
-cp backend/.env.example backend/.env
-
-# 3. Build and start both services
-docker compose up --build
-
-# 4. Open the app
-open http://localhost:3001
-```
-
----
-
-## 🛠 Local Development (without Docker)
-
-### Backend
-
-```bash
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn main:app --reload --port 8001
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
----
-
 ## 🔑 Environment Variables
 
 ### Backend (`backend/.env`)
@@ -110,12 +58,6 @@ npm run dev
 | --------------- | ----------------------------------- | ------------------------------------ |
 | `DATABASE_URL`  | `sqlite:///./mfa.db`                | SQLite database path                 |
 | `CORS_ORIGINS`  | `http://localhost:3001,...`         | Comma-separated allowed origins      |
-
-### Frontend (`frontend/.env.local`)
-
-| Variable               | Default                        | Description              |
-| ---------------------- | ------------------------------ | ------------------------ |
-| `NEXT_PUBLIC_API_URL`  | *(via Next.js rewrite)*        | Backend API base URL     |
 
 ---
 
@@ -133,6 +75,7 @@ mfa/
 │   └── requirements.txt
 ├── frontend/                # Next.js application
 │   └── src/
+├── setup.sh                 # One-step setup script
 ├── docker-compose.yml       # Build from source
 ├── docker-compose.prod.yml  # Deploy from pre-built images
 └── data/                    # SQLite database (gitignored)
