@@ -1,8 +1,8 @@
 services:
   backend:
     image: ghcr.io/itsddpanda/private_fund_analyzer-backend:latest
-    ports:
-      - "8001:8001"
+    container_name: mfa-backend
+    # Port NOT exposed to host — frontend proxies API calls internally via Next.js rewrites
     volumes:
       - ./data:/data
     env_file:
@@ -17,6 +17,7 @@ services:
 
   frontend:
     image: ghcr.io/itsddpanda/private_fund_analyzer-frontend:latest
+    container_name: mfa-frontend
     ports:
       - "3001:3001"
     restart: unless-stopped
