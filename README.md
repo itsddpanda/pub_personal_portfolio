@@ -71,13 +71,10 @@ git clone https://github.com/itsddpanda/Private_fund_analyzer.git && cd Private_
 # 2. Create backend environment file
 cp backend/.env.example backend/.env
 
-# 3. Create frontend environment file (optional overrides)
-touch frontend/.env.local
-
-# 4. Build and start both services
+# 3. Build and start both services
 docker compose up --build
 
-# 5. Open the app
+# 4. Open the app
 open http://localhost:3001
 ```
 
