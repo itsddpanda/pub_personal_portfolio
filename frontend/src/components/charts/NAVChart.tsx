@@ -171,33 +171,31 @@ export function NAVChart({ data, isLoading, onRefresh }: NAVChartProps) {
         <div className="bg-white/90 dark:bg-slate-900/50 backdrop-blur-md rounded-3xl p-6 md:p-8 border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-slate-200">NAV History</h3>
+                    <div className="flex items-baseline gap-3 mb-1">
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-slate-200">NAV History</h3>
+                        <p className="text-xs text-slate-500 hidden sm:block">Performance tracked over time</p>
+                    </div>
 
                     {/* Horizontal NAV Range & CAGR Display */}
-                    {periodBoundaries ? (
-                        <div className="flex flex-wrap items-end gap-x-4 gap-y-2 mt-2 mb-3">
+                    {periodBoundaries && (
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 mb-3">
                             <div className="flex flex-col">
                                 <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Start ({periodBoundaries.start.date})</span>
                                 <span className="text-sm font-mono font-bold text-slate-700 dark:text-slate-300">₹{periodBoundaries.start.nav}</span>
                             </div>
-                            <div className="hidden sm:block w-8 h-px bg-slate-200 dark:bg-slate-700 mb-2.5" />
+                            <div className="hidden sm:block w-8 h-px bg-slate-200 dark:bg-slate-700" />
                             <div className="flex flex-col mr-2">
                                 <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">End ({periodBoundaries.end.date})</span>
                                 <span className="text-sm font-mono font-bold text-slate-700 dark:text-slate-300">₹{periodBoundaries.end.nav}</span>
                             </div>
 
                             {currentCAGR !== null && (
-                                <div className="flex items-center gap-3 sm:border-l sm:border-slate-200 dark:sm:border-slate-700 sm:pl-4 mb-0.5">
-                                    <p className="text-xs text-slate-500 hidden md:block">Performance tracked over time</p>
+                                <div className="flex items-center sm:border-l sm:border-slate-200 dark:sm:border-slate-700 sm:pl-4">
                                     <span className="text-sm font-mono font-bold px-3 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-lg border border-indigo-100 dark:border-indigo-500/20 shadow-sm">
                                         CAGR: {currentCAGR.toFixed(2)}%
                                     </span>
                                 </div>
                             )}
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-3 mt-1.5 mb-3">
-                            <p className="text-xs text-slate-500">Performance tracked over time</p>
                         </div>
                     )}
                 </div>

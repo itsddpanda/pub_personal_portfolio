@@ -20,9 +20,10 @@ while true; do
     echo "5. Start containers only (up -d --build)"
     echo "6. Option 1 + Build Frontend + Recreate containers"
     echo "7. Option 2 + Build Frontend + Recreate containers"
-    echo "8. Exit"
+    echo "8. View backend container logs (tail -f)"
+    echo "9. Exit"
     echo "---------------------------------------------"
-    read -p "Choose an option [1-8]: " option
+    read -p "Choose an option [1-9]: " option
 
     case $option in
         1)
@@ -67,7 +68,7 @@ while true; do
             break
             ;;
         7)
-            echo "[Option 7] Down (destory data) + Build Frontend + Recreate..."
+            echo "[Option 7] Down (destroy data) + Build Frontend + Recreate..."
             echo "[Option 7] Destroying volumes..."
             docker compose -f "$COMPOSE_FILE" down -v
             echo "[Option 7] Building frontend..."
@@ -77,6 +78,11 @@ while true; do
             break
             ;;
         8)
+            echo "[Option 8] Viewing backend container logs..."
+            docker compose -f "$COMPOSE_FILE" logs -f backend
+            break
+            ;;
+        9)
             echo "Exiting..."
             exit 0
             ;;

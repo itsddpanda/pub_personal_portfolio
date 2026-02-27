@@ -94,9 +94,12 @@ def parse_enrichment_response(scheme_id: int, data: Dict[str, Any], mfa_nav: Opt
     enrichment.risk_metrics = FundRiskMetrics()
     
     # Extract tooltips function
-    def get_tooltip(risk_obj, key):
+    def get_tooltip(risk_obj, key, default=None):
         tt = risk_obj.get(key, {}).get("toolTipText", "")
-        return tt.split("<br/>")[0].strip() if tt else None
+        if not tt: return default
+        parts = tt.split("<br/>")
+        text = parts[-1].strip().lstrip("?").strip()
+        return text if text else default
 
     # Look for performance history array if provided to extract multi-period cagr/risk metrics
     history = data.get("fund_performance_history", [])
@@ -140,7 +143,12 @@ def parse_enrichment_response(scheme_id: int, data: Dict[str, Any], mfa_nav: Opt
             enrichment.performance.returns_5y = float(returns_obj.get("5y", 0)) if returns_obj.get("5y") else None
             
             returns_tt = returns_obj.get("toolTipText", "")
-            enrichment.performance.returns_tooltip = returns_tt.split("<br/>")[0].strip() if returns_tt else "Percentage growth of the fund over the selected period."
+            if returns_tt:
+                parts = returns_tt.split("<br/>")
+                text = parts[-1].strip().lstrip("?").strip()
+                enrichment.performance.returns_tooltip = text if text else "Percentage growth of the fund over the selected period."
+            else:
+                enrichment.performance.returns_tooltip = "Percentage growth of the fund over the selected period."
 
             enrichment.risk_metrics.cat_avg_1y = float(returns_obj.get("cat_avg_1y")) if returns_obj.get("cat_avg_1y") else None
             enrichment.risk_metrics.cat_avg_3y = float(returns_obj.get("cat_avg_3y")) if returns_obj.get("cat_avg_3y") else None

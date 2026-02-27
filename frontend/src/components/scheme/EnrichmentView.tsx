@@ -220,8 +220,15 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                     <p className="text-lg font-mono font-bold text-slate-900 dark:text-slate-100">
                                         {data.performance[`returns_${period}`].toFixed(2)}%
                                     </p>
-                                    {data.risk_metrics[`cat_avg_${period}`] !== null && (
-                                        <p className="text-[10px] text-slate-400 font-mono mt-1">Cat Avg: {data.risk_metrics[`cat_avg_${period}`].toFixed(2)}%</p>
+                                    {(data.risk_metrics[`cat_avg_${period}`] !== null || data.risk_metrics[`cat_max_${period}`] !== null) && (
+                                        <div className="flex items-center gap-3 mt-1">
+                                            {data.risk_metrics[`cat_avg_${period}`] !== null && (
+                                                <p className="text-[10px] text-slate-400 font-mono">Cat Avg: {data.risk_metrics[`cat_avg_${period}`].toFixed(2)}%</p>
+                                            )}
+                                            {data.risk_metrics[`cat_max_${period}`] !== null && (
+                                                <p className="text-[10px] text-slate-400 font-mono text-indigo-500/80 dark:text-indigo-400/80">Max: {data.risk_metrics[`cat_max_${period}`].toFixed(2)}%</p>
+                                            )}
+                                        </div>
                                     )}
                                 </div>
                             )}
