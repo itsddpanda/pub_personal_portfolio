@@ -64,6 +64,19 @@ export default function DashboardPage() {
             router.push('/');
             return;
         }
+
+        // Check if we just landed here from a successful CAS upload
+        const pendingMsgs = sessionStorage.getItem('upload_success_messages');
+        if (pendingMsgs) {
+            try {
+                const msgs = JSON.parse(pendingMsgs);
+                msgs.forEach((msg: string) => toast.success(msg));
+            } catch (e) {
+                // Ignore parse errors safely
+            }
+            sessionStorage.removeItem('upload_success_messages');
+        }
+
         fetchData(userId);
 
         // Dynamic polling interval
@@ -94,7 +107,7 @@ export default function DashboardPage() {
         poll();
 
         return () => clearTimeout(pollTimeout);
-    }, [router, fetchData]);
+    }, [router, fetchData, toast]);
 
 
     const handleForceSync = async () => {

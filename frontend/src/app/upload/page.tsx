@@ -67,10 +67,18 @@ export default function UploadPage() {
                     attempts++;
                 }
 
-                toast.success(`Success: Imported ${result.new_transactions || 0} new transactions, skipped ${result.skipped_transactions || 0} duplicates.`);
+                const successMsgs = [];
+                successMsgs.push(`Success: Imported ${result.new_transactions || 0} new transactions, skipped ${result.skipped_transactions || 0} duplicates.`);
+
                 if (result.reconciled_opening_balances && result.reconciled_opening_balances > 0) {
-                    toast.success(`Full history imported! Invested value updated for ${result.reconciled_opening_balances} scheme${result.reconciled_opening_balances > 1 ? 's' : ''}.`);
+                    successMsgs.push(`Full history imported! Invested value updated for ${result.reconciled_opening_balances} scheme${result.reconciled_opening_balances > 1 ? 's' : ''}.`);
                 }
+
+                // Instead of displaying them here where they get immediately destroyed by the hard navigation,
+                // we stash them in sessionStorage for the newly loaded dashboard.
+                sessionStorage.setItem('upload_success_messages', JSON.stringify(successMsgs));
+
+
                 // Show "Done!" animation before redirecting
                 setPhase('DONE');
                 await new Promise(resolve => setTimeout(resolve, 800));

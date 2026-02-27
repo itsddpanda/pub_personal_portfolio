@@ -88,3 +88,31 @@ export async function getSchemeHistory(amfiCode: string) {
     }
     return res.json();
 }
+
+export class RetryableError extends Error {
+    retryAfter: number;
+    constructor(message: string, retryAfter: number) {
+        super(message);
+        this.name = "RetryableError";
+        this.retryAfter = retryAfter;
+    }
+}
+
+export async function getSchemeEnrichment(amfiCode: string) {
+    const res = await fetch(`${API_BASE}/scheme/${amfiCode}/enrichment`);
+
+    if (res.status === 503) {
+        // Backend DaaS triggers a background calc.
+        const retryAfterStr = res.headers.get("Retry-After");
+        // Default to 60s if header is missing
+        const retryAfter = retryAfterStr ? parseInt(retryAfterStr, 10) : 60;
+        throw new RetryableError("Data is being calculated in the background.", retryAfter);
+    }
+
+    if (!res.ok) {
+        if (res.status === 404) return null; // No enrichment data available for this ISIN
+        throw new Error('Failed to fetch scheme enrichment intelligence');
+    }
+
+    return res.json();
+}

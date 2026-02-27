@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { getSchemeDetails, getSchemeHistory } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { NAVChart } from '@/components/charts/NAVChart';
+import { EnrichmentView } from '@/components/scheme/EnrichmentView';
 
 interface NAVDataPoint {
     date: string;
@@ -252,6 +253,9 @@ export default function SchemeDetailsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* DaaS Advanced Intelligence View */}
+            <EnrichmentView amfiCode={amfiCode} />
 
             {/* Minimalist Ledger Table */}
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-200 mb-4 px-1 drop-shadow-sm">Transaction Ledger</h2>
