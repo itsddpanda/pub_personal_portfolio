@@ -54,3 +54,4 @@ get_cas_schema.py
 docs/*
 !docs/specs/
 backend/tests/*
+integration/*
