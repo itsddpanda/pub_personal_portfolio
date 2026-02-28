@@ -40,7 +40,6 @@ class Scheme(SQLModel, table=True):
     nav_history: List["NavHistory"] = Relationship(back_populates="scheme")
 
 
-
 class NavHistory(SQLModel, table=True):
     __table_args__ = (UniqueConstraint("scheme_id", "date", name="uix_scheme_date"),)
 
@@ -117,13 +116,16 @@ class SystemState(SQLModel, table=True):
 
 # Fund Intelligence Extended Data
 
+
 class FundEnrichment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     scheme_id: int = Field(foreign_key="scheme.id", unique=True)
     fund_name: Optional[str] = Field(default="Unknown Fund")
     fetched_at: datetime = Field(default_factory=datetime.utcnow)
-    
-    validation_status: int = Field(default=0)  # 0: Unvalidated, 1: Passed, 2: Partial, 3: Failed
+
+    validation_status: int = Field(
+        default=0
+    )  # 0: Unvalidated, 1: Passed, 2: Partial, 3: Failed
     nav_validation_status: int = Field(default=0)
     name_validation_status: int = Field(default=0)
     freshness_status: int = Field(default=0)
@@ -135,7 +137,6 @@ class FundEnrichment(SQLModel, table=True):
     cash_alloc: Optional[float] = None
     other_alloc: Optional[float] = None
 
-    
     performance: Optional["FundPerformance"] = Relationship(
         back_populates="enrichment",
         sa_relationship_kwargs={"uselist": False, "cascade": "all, delete-orphan"},
@@ -165,41 +166,41 @@ class FundPerformance(SQLModel, table=True):
     cagr_3y: Optional[float] = None
     cagr_5y: Optional[float] = None
     cagr_tooltip: Optional[str] = None
-    
+
     enrichment: FundEnrichment = Relationship(back_populates="performance")
 
 
 class FundRiskMetrics(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     enrichment_id: int = Field(foreign_key="fundenrichment.id", unique=True)
-    
+
     cat_avg_1y: Optional[float] = None
     cat_avg_3y: Optional[float] = None
     cat_avg_5y: Optional[float] = None
-    
+
     cat_min_1y: Optional[float] = None
     cat_min_3y: Optional[float] = None
     cat_min_5y: Optional[float] = None
-    
+
     cat_max_1y: Optional[float] = None
     cat_max_3y: Optional[float] = None
     cat_max_5y: Optional[float] = None
-    
+
     sharpe_ratio_1y: Optional[float] = None
     sharpe_ratio_3y: Optional[float] = None
     sharpe_ratio_5y: Optional[float] = None
     sharpe_ratio_tooltip: Optional[str] = None
-    
+
     sortino_ratio_1y: Optional[float] = None
     sortino_ratio_3y: Optional[float] = None
     sortino_ratio_5y: Optional[float] = None
     sortino_ratio_tooltip: Optional[str] = None
-    
+
     risk_std_dev_1y: Optional[float] = None
     risk_std_dev_3y: Optional[float] = None
     risk_std_dev_5y: Optional[float] = None
     risk_std_dev_tooltip: Optional[str] = None
-    
+
     beta_1y: Optional[float] = None
     beta_3y: Optional[float] = None
     beta_5y: Optional[float] = None
@@ -227,6 +228,5 @@ class FundPeer(SQLModel, table=True):
     expense_ratio: Optional[float] = None
     std_deviation: Optional[float] = None
     return_3y: Optional[float] = None
-    
-    enrichment: FundEnrichment = Relationship(back_populates="peers")
 
+    enrichment: FundEnrichment = Relationship(back_populates="peers")

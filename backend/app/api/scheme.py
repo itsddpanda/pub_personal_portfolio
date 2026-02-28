@@ -13,7 +13,12 @@ from pyxirr import xirr
 from datetime import date
 
 from app.models.models import FundEnrichment
-from app.services.fund_intelligence import fetch_fund_intelligence, parse_enrichment_response, DaasProcessingException, DaasAuthException
+from app.services.fund_intelligence import (
+    fetch_fund_intelligence,
+    parse_enrichment_response,
+    DaasProcessingException,
+    DaasAuthException,
+)
 from app.services.interfaces.fund_intel import get_enrichment_for_scheme
 from app.services.cache_manager import should_purge
 
@@ -262,54 +267,65 @@ def trigger_scheme_backfill(amfi_code: str, session: Session = Depends(get_sessi
 
 
 @router.get("/{amfi_code}/enrichment")
-def get_scheme_enrichment(amfi_code: str, force: bool = False, session: Session = Depends(get_session)):
+def get_scheme_enrichment(
+    amfi_code: str, force: bool = False, session: Session = Depends(get_session)
+):
     """
-    Fetches the Fund Intelligence extended data. 
+    Fetches the Fund Intelligence extended data.
     Returns 503 if the DaaS API is computing it in the background.
     """
     scheme = session.exec(select(Scheme).where(Scheme.amfi_code == amfi_code)).first()
     if not scheme:
         raise HTTPException(status_code=404, detail="Scheme not found")
-        
+
     # 1. Check if we already have it cached
     enrichment = session.exec(
         select(FundEnrichment).where(FundEnrichment.scheme_id == scheme.id)
     ).first()
-    
+
     if enrichment:
         if force or should_purge(enrichment.fetched_at.date()):
             # Cache expired or forced refresh, delete it and we'll fetch a new one
             session.delete(enrichment)
             session.commit()
             enrichment = None
-            
+
     # 2. Not cached or expired. Fetch from DaaS API
     if not enrichment:
         try:
             raw_data = fetch_fund_intelligence(scheme.isin)
             if not raw_data:
-                raise HTTPException(status_code=404, detail="Intelligence data not found for this ISIN")
-                
-            enrichment = parse_enrichment_response(scheme.id, raw_data, mfa_nav=scheme.latest_nav, mfa_name=scheme.name, session=session)
-            
+                raise HTTPException(
+                    status_code=404, detail="Intelligence data not found for this ISIN"
+                )
+
+            enrichment = parse_enrichment_response(
+                scheme.id,
+                raw_data,
+                mfa_nav=scheme.latest_nav,
+                mfa_name=scheme.name,
+                session=session,
+            )
+
             session.add(enrichment)
             session.commit()
             session.refresh(enrichment)
-            
+
         except DaasProcessingException as e:
             # Standard 503 response, telling frontend to try again in `e.retry_after` seconds.
             raise HTTPException(
-                status_code=503, 
-                detail={"status": "processing", "message": str(e)}, 
-                headers={"Retry-After": str(e.retry_after)}
+                status_code=503,
+                detail={"status": "processing", "message": str(e)},
+                headers={"Retry-After": str(e.retry_after)},
             )
         except DaasAuthException as e:
-            raise HTTPException(status_code=500, detail="Intelligence API configuration error.")
-            
+            raise HTTPException(
+                status_code=500, detail="Intelligence API configuration error."
+            )
+
     # 3. Retrieve through DTO layer to ensure encapsulation
     dto = get_enrichment_for_scheme(session, scheme.id)
     if not dto:
         raise HTTPException(status_code=500, detail="Failed to retrieve enrichment DTO")
-        
-    return dto
 
+    return dto

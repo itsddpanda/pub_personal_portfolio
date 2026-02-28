@@ -55,7 +55,9 @@ def validate_freshness(fetched_at: datetime) -> int:
     return 3
 
 
-def compute_overall_validation_status(nav_status: int, name_status: int, freshness_status: int) -> int:
+def compute_overall_validation_status(
+    nav_status: int, name_status: int, freshness_status: int
+) -> int:
     """
     Evaluates the lowest (worst) score across V1, V2, V3.
     3 is worst (Failed), 2 is degraded, 1 is Passed.
@@ -65,10 +67,17 @@ def compute_overall_validation_status(nav_status: int, name_status: int, freshne
     statuses = [s for s in (nav_status, name_status, freshness_status) if s > 0]
     if not statuses:
         return 0
-    return max(statuses) # max integer value happens to correspond to the worst semantic status (3)
+    return max(
+        statuses
+    )  # max integer value happens to correspond to the worst semantic status (3)
 
 
-def run_validations(enrichment: FundEnrichment, enrichment_nav: float = None, mfa_nav: float = None, mfa_name: str = None):
+def run_validations(
+    enrichment: FundEnrichment,
+    enrichment_nav: float = None,
+    mfa_nav: float = None,
+    mfa_name: str = None,
+):
     """
     Runs V1, V2, V3 engines against the enrichment payload and mutates the status metrics in-place.
     """
@@ -76,7 +85,7 @@ def run_validations(enrichment: FundEnrichment, enrichment_nav: float = None, mf
 
     # V1: NAV Match
     enrichment.nav_validation_status = validate_nav(enrichment_nav, mfa_nav)
-    
+
     # V2: Name Match (Relies on Scheme linkage downstream, we'll assume mfa_name is available or loaded by caller)
     enrichment.name_validation_status = validate_name(enrichment.fund_name, mfa_name)
 
@@ -87,5 +96,5 @@ def run_validations(enrichment: FundEnrichment, enrichment_nav: float = None, mf
     enrichment.validation_status = compute_overall_validation_status(
         enrichment.nav_validation_status,
         enrichment.name_validation_status,
-        enrichment.freshness_status
+        enrichment.freshness_status,
     )
