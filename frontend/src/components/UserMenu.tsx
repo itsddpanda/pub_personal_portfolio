@@ -90,7 +90,16 @@ export default function UserMenu() {
                 setUsers(data);
                 if (storedId) {
                     const u = data.find((user: User) => user.id === storedId);
-                    if (u) setActiveUserName(u.name);
+                    if (u) {
+                        setActiveUserName(u.name);
+                    } else {
+                        console.warn("Stale user session detected. Logging out.");
+                        localStorage.removeItem("mfa_user_id");
+                        setActiveUserId(null);
+                        if (window.location.pathname !== '/upload' && window.location.pathname !== '/') {
+                            window.location.href = '/upload';
+                        }
+                    }
                 }
             })
             .catch((err) => console.error("Failed to fetch users", err));

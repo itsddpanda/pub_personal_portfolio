@@ -26,5 +26,4 @@ services:
         condition: service_healthy
 
 volumes:
-  data:
-    name: mfa-data
+  data: #    name: mfa-data

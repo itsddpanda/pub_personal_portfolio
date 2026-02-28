@@ -1,7 +1,7 @@
 # Architecture: Privacy-First Mutual Fund Analyzer
 
 **Date:** 2026-02-18
-**Last Updated:** 2026-02-22
+**Last Updated:** 2026-02-28
 **Status:** Implemented
 
 ## 1. Stack Strategy
@@ -62,6 +62,15 @@ The local MFA application integrates with this by making standard client-side `f
 | **Folio** | `id`, `portfolio_id`, `amc_id`, `folio_number` | Linked to AMC |
 | **Transaction** | `id` (SHA-256 hash), `folio_id`, `scheme_id`, `date`, `type`, `amount`, `units`, `nav`, `balance` | Deduplicated via composite key |
 
+### Fund Intelligence Data (Cached)
+| Model | Key Fields | Notes |
+|---|---|---|
+| **FundEnrichment** | `id`, `scheme_id`, `fund_name`, `fetched_at`, `validation_status` | Parent for all intelligence data |
+| **FundPerformance** | `enrichment_id`, `returns_1y/3y/5y`, `cagr_1y/3y/5y` | Performance metrics |
+| **FundRiskMetrics** | `enrichment_id`, `sharpe_ratio`, `sortino_ratio`, `std_dev`, `beta` | Risk-adjusted metrics with 1y/3y/5y variants |
+| **FundHolding** | `enrichment_id`, `stock_name`, `sector`, `weighting` | Portfolio holdings |
+| **FundPeer** | `enrichment_id`, `fund_name`, `expense_ratio`, `return_3y` | Direct category peers |
+
 ### Transaction ID Generation
 ```
 SHA-256( "{PAN}|{ISIN}|{date}|{amount}|{type}|{units}" )
@@ -79,6 +88,7 @@ SHA-256( "{PAN}|{ISIN}|{date}|{amount}|{type}|{units}" )
 |---|---|---|---|
 | `GET` | `/api/schemes/{amfi_code}` | `x-user-id` (required) | Full scheme page data: metadata (lazy-loaded from `mfapi.in`), per-scheme KPIs (XIRR, invested, current), and chronological transaction ledger with running unit balance. |
 | `GET` | `/api/schemes/{amfi_code}/history` | — | Returns chronological NAV history for UI charting. |
+| `GET` | `/api/schemes/{amfi_code}/enrichment` | — | Fetches/triggers Fund Intelligence extended data (Returns 503 while computing). |
 | `POST` | `/api/schemes/{amfi_code}/backfill` | — | Manually triggers background backfill for 10-year NAV history from `mfapi.in`. |
 
 ### NAV Sync (`/api`)

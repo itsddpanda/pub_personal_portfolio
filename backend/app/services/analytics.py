@@ -6,6 +6,9 @@ from typing import List, Dict, Any
 from collections import defaultdict
 
 
+from app.services.interfaces.market_data import get_schemes_by_ids
+
+
 def get_portfolio_summary(session: Session, user_id: str):
     """
     Calculates Portfolio XIRR and Total Value using SQL aggregations for performance.
@@ -21,7 +24,7 @@ def get_portfolio_summary(session: Session, user_id: str):
     # We join folio -> portfolio to filter by user_id
     holdings_query = (
         select(
-            Scheme,
+            Transaction.scheme_id,
             func.sum(
                 func.abs(Transaction.units)
                 * case((Transaction.type.in_(REDEMPTION_TYPES), -1), else_=1)
@@ -35,11 +38,10 @@ def get_portfolio_summary(session: Session, user_id: str):
                 "total_invested"
             ),  # Simple sum of inflows
         )
-        .join(Transaction, Transaction.scheme_id == Scheme.id)
         .join(Folio, Transaction.folio_id == Folio.id)
         .join(Portfolio, Folio.portfolio_id == Portfolio.id)
         .where(Portfolio.user_id == user_id)
-        .group_by(Scheme.id)
+        .group_by(Transaction.scheme_id)
     )
 
     results = session.exec(holdings_query).all()
@@ -47,15 +49,23 @@ def get_portfolio_summary(session: Session, user_id: str):
     if not results:
         return {"total_value": 0, "invested_value": 0, "xirr": 0, "holdings": []}
 
+    scheme_ids_to_fetch = [r[0] for r in results]
+    scheme_dtos = get_schemes_by_ids(session, scheme_ids_to_fetch)
+    scheme_map = {s.id: s for s in scheme_dtos}
+
     processed_holdings = []
     total_current_value = 0.0
     total_invested_value = 0.0
 
-    for scheme, net_units, invested_sum in results:
+    for scheme_id, net_units, invested_sum in results:
         if net_units < 0.001:
             continue
 
-        nav = scheme.latest_nav if scheme.latest_nav else 0.0
+        scheme_dto = scheme_map.get(scheme_id)
+        if not scheme_dto:
+            continue
+
+        nav = scheme_dto.latest_nav if scheme_dto.latest_nav else 0.0
         current_val = net_units * nav
 
         total_current_value += current_val
@@ -63,8 +73,11 @@ def get_portfolio_summary(session: Session, user_id: str):
 
         processed_holdings.append(
             {
-                "scheme_name": scheme.name,
-                "isin": scheme.isin,
+                "scheme_id": scheme_id,
+                "scheme_name": scheme_dto.name,
+                "isin": scheme_dto.isin,
+                "amfi_code": scheme_dto.amfi_code,
+                "latest_nav_date": scheme_dto.latest_nav_date,
                 "units": float(net_units),
                 "current_nav": nav,
                 "current_value": current_val,
@@ -194,38 +207,35 @@ def get_portfolio_summary(session: Session, user_id: str):
         pass  # Handle in next step if needed, but wait:
 
     # Re-map holdings to inject invested_value
-    final_holdings = []
     latest_nav_date = None
-
-    for scheme, net_units, _old_invested_sum in results:
-        if net_units < 0.001:
-            continue
-
-        nav = scheme.latest_nav if scheme.latest_nav else 0.0
-        current_val = net_units * nav
+    for ph in processed_holdings:
+        scheme_id = ph["scheme_id"]
+        net_units = ph["units"]
+        nav = ph["current_nav"]
+        current_val = ph["current_value"]
 
         # Track max NAV date among active holdings
-        if scheme.latest_nav_date:
-            if not latest_nav_date or scheme.latest_nav_date > latest_nav_date:
-                latest_nav_date = scheme.latest_nav_date
+        if ph["latest_nav_date"]:
+            if not latest_nav_date or ph["latest_nav_date"] > latest_nav_date:
+                latest_nav_date = ph["latest_nav_date"]
 
-        fifo_invested = scheme_invested_map.get(scheme.id, 0.0)
+        fifo_invested = scheme_invested_map.get(scheme_id, 0.0)
 
         # --- Per-Scheme XIRR Calculation & Edge Cases ---
         s_xirr = None
         s_xirr_status = "VALID"
 
-        if scheme.id in estimated_schemes:
+        if scheme_id in estimated_schemes:
             s_xirr_status = "ESTIMATED"
         else:
-            first_date = scheme_first_investment_date.get(scheme.id)
+            first_date = scheme_first_investment_date.get(scheme_id)
             if first_date and latest_nav_date:
                 duration = (latest_nav_date - first_date).days
                 if duration < 365:
                     s_xirr_status = "LESS_THAN_1_YEAR"
                 else:
-                    s_dates = scheme_xirr_data[scheme.id]["dates"].copy()
-                    s_amounts = scheme_xirr_data[scheme.id]["amounts"].copy()
+                    s_dates = scheme_xirr_data[scheme_id]["dates"].copy()
+                    s_amounts = scheme_xirr_data[scheme_id]["amounts"].copy()
 
                     if current_val > 0:
                         s_dates.append(date.today())
@@ -242,20 +252,20 @@ def get_portfolio_summary(session: Session, user_id: str):
                 s_xirr_status = "MISSING_DATES"
 
         holding_entry = {
-            "scheme_name": scheme.name,
-            "isin": scheme.isin,
-            "amfi_code": scheme.amfi_code,
+            "scheme_name": ph["scheme_name"],
+            "isin": ph["isin"],
+            "amfi_code": ph["amfi_code"],
             "units": float(net_units),
             "current_nav": nav,
             "current_value": current_val,
             "invested_value": float(fifo_invested),
-            "is_estimated": scheme.id in estimated_schemes,
+            "is_estimated": scheme_id in estimated_schemes,
             "xirr": s_xirr,
             "xirr_status": s_xirr_status,
         }
 
-        if scheme.id in estimated_schemes:
-            ob = opening_balance_details.get(scheme.id, {})
+        if scheme_id in estimated_schemes:
+            ob = opening_balance_details.get(scheme_id, {})
             holding_entry["opening_balance_units"] = ob.get("units", 0)
             holding_entry["opening_balance_date"] = ob.get("date")
             holding_entry["purchased_units"] = float(net_units) - ob.get("units", 0)

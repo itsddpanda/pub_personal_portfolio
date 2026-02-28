@@ -299,19 +299,66 @@ def backfill_all_schemes():
     and triggers the backfill process.
     """
     from app.db.engine import get_session
+    from app.models.models import SystemState
 
     # Needs its own session as it runs in a background task
     session_gen = get_session()
     session = next(session_gen)
 
     try:
-        schemes = session.exec(select(Scheme).where(Scheme.amfi_code != None)).all()
+        # Mark sync as in progress
+        state = session.get(SystemState, "nav_sync_status")
+        if not state:
+            state = SystemState(key="nav_sync_status", value="IN_PROGRESS")
+        else:
+            state.value = "IN_PROGRESS"
 
-        for scheme in schemes:
+        progress_state = session.get(SystemState, "nav_sync_progress")
+        if not progress_state:
+            progress_state = SystemState(key="nav_sync_progress", value="0/0")
+        else:
+            progress_state.value = "0/0"
+
+        session.add(state)
+        session.add(progress_state)
+        session.commit()
+
+        schemes = session.exec(select(Scheme).where(Scheme.amfi_code != None)).all()
+        total_schemes = len(schemes)
+
+        for i, scheme in enumerate(schemes):
+            # Update progress BEFORE tracking to visually satisfy frontend
+            progress_state.value = f"{i}/{total_schemes}"
+            session.add(progress_state)
+            session.commit()
+
             # The backfill_historical_nav handles its own 7-day throttle checking.
             # We just trigger it for everyone.
             backfill_historical_nav(session, scheme.id, scheme.amfi_code)
             time.sleep(0.5)
+
+        # Completion Tracking
+        state.value = "SUCCESS"
+        progress_state.value = f"{total_schemes}/{total_schemes}"
+        last_run = session.get(SystemState, "nav_sync_last_run")
+        if not last_run:
+            last_run = SystemState(
+                key="nav_sync_last_run", value=datetime.utcnow().isoformat()
+            )
+        else:
+            last_run.value = datetime.utcnow().isoformat()
+
+        session.add(state)
+        session.add(progress_state)
+        session.add(last_run)
+        session.commit()
+    except Exception as e:
+        logger.error(f"Error in backfill_all_schemes: {e}")
+        state = session.get(SystemState, "nav_sync_status")
+        if state:
+            state.value = "FAILED"
+            session.add(state)
+            session.commit()
     finally:
         try:
             next(session_gen)

@@ -2,28 +2,31 @@
 
 import React, { useEffect, useState } from 'react';
 
-type Phase = 'IDLE' | 'READING' | 'UNDERSTANDING' | 'CALCULATING' | 'DONE';
+type Phase = 'IDLE' | 'READING' | 'UNDERSTANDING' | 'CALCULATING' | 'SYNCING' | 'DONE';
 
 interface ProcessingOverlayProps {
     phase: Phase;
     visible: boolean;
+    detailText?: string;
 }
 
 const STEPS: { phase: Phase; icon: string; label: string }[] = [
     { phase: 'READING', icon: '📄', label: 'Reading your statement…' },
     { phase: 'UNDERSTANDING', icon: '🧠', label: 'Understanding your portfolio…' },
     { phase: 'CALCULATING', icon: '📊', label: 'Calculating returns…' },
+    { phase: 'SYNCING', icon: '🔄', label: 'Loading market data…' },
 ];
 
 function getPhaseIndex(phase: Phase): number {
     if (phase === 'READING') return 0;
     if (phase === 'UNDERSTANDING') return 1;
     if (phase === 'CALCULATING') return 2;
-    if (phase === 'DONE') return 3;
+    if (phase === 'SYNCING') return 3;
+    if (phase === 'DONE') return 4;
     return -1;
 }
 
-export default function ProcessingOverlay({ phase, visible }: ProcessingOverlayProps) {
+export default function ProcessingOverlay({ phase, visible, detailText }: ProcessingOverlayProps) {
     const [show, setShow] = useState(false);
     const [fadeOut, setFadeOut] = useState(false);
 
@@ -45,10 +48,11 @@ export default function ProcessingOverlay({ phase, visible }: ProcessingOverlayP
 
     const currentIndex = getPhaseIndex(phase);
     const isDone = phase === 'DONE';
+    const isSyncing = phase === 'SYNCING';
 
     // Progress ring calculation
     const circumference = 2 * Math.PI * 54; // radius=54
-    const progressPercent = isDone ? 100 : ((currentIndex + 1) / 3) * 85; // 85% max during processing
+    const progressPercent = isDone ? 100 : isSyncing ? 80 : ((currentIndex + 1) / 4) * 85;
     const dashOffset = circumference - (progressPercent / 100) * circumference;
 
     return (
@@ -68,7 +72,7 @@ export default function ProcessingOverlay({ phase, visible }: ProcessingOverlayP
                     {/* Glow behind the ring */}
                     <div className={`absolute inset-0 rounded-full ${isDone ? 'bg-emerald-500/20' : 'bg-indigo-500/20'} blur-2xl processing-pulse-ring transition-colors duration-700`} />
 
-                    <svg className="w-36 h-36 -rotate-90" viewBox="0 0 120 120">
+                    <svg className={`w-36 h-36 ${!isDone ? 'animate-spin' : '-rotate-90'}`} viewBox="0 0 120 120">
                         {/* Background track */}
                         <circle
                             cx="60" cy="60" r="54"
@@ -86,7 +90,7 @@ export default function ProcessingOverlay({ phase, visible }: ProcessingOverlayP
                             className={`transition-all duration-1000 ease-out ${isDone ? 'text-emerald-400' : 'text-indigo-400'}`}
                             stroke="currentColor"
                             strokeDasharray={circumference}
-                            strokeDashoffset={dashOffset}
+                            strokeDashoffset={!isDone ? circumference * 0.25 : dashOffset}
                         />
                     </svg>
 
@@ -109,9 +113,16 @@ export default function ProcessingOverlay({ phase, visible }: ProcessingOverlayP
                             Done! Loading your dashboard…
                         </p>
                     ) : (
-                        <p className="text-xl font-semibold text-white processing-fade-in-up" key={phase}>
-                            {STEPS[currentIndex]?.label || 'Processing…'}
-                        </p>
+                        <div className="flex flex-col items-center">
+                            <p className="text-xl font-semibold text-white processing-fade-in-up" key={phase}>
+                                {STEPS[currentIndex]?.label || 'Processing…'}
+                            </p>
+                            {detailText && phase === 'SYNCING' && (
+                                <p className="text-sm text-indigo-200/80 mt-2 font-medium tracking-wide animate-pulse">
+                                    {detailText}
+                                </p>
+                            )}
+                        </div>
                     )}
                 </div>
 
@@ -124,10 +135,10 @@ export default function ProcessingOverlay({ phase, visible }: ProcessingOverlayP
                             <div key={step.phase} className="flex items-center gap-3">
                                 <div
                                     className={`w-3 h-3 rounded-full transition-all duration-500 ${isComplete
-                                            ? 'bg-emerald-400 scale-100'
-                                            : isActive
-                                                ? 'bg-indigo-400 scale-125 processing-pulse-ring'
-                                                : 'bg-white/20 scale-100'
+                                        ? 'bg-emerald-400 scale-100'
+                                        : isActive
+                                            ? 'bg-indigo-400 scale-125 processing-pulse-ring'
+                                            : 'bg-white/20 scale-100'
                                         }`}
                                 />
                                 {i < STEPS.length - 1 && (
