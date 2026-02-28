@@ -386,77 +386,86 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                     </div>
                 )}
                 {/* Peer Comparison Table & Cost Drag */}
-                {data.peers?.length > 0 && (
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm dark:shadow-xl overflow-hidden flex flex-col transition-all hover:shadow-md dark:hover:bg-slate-900/80">
-                        <div className="p-6 pb-4 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-200">Category Peers Comparison</h3>
-                            {/* Cost Drag Badge */}
-                            {(() => {
-                                if (data.expense_ratio == null || data.peers.length === 0) return null;
-                                const validPeers = data.peers.filter((p: any) => p.expense_ratio != null);
-                                if (validPeers.length === 0) return null;
+                {data.peers?.length > 0 && (() => {
+                    const validPeers = data.peers.filter((p: any) => p.expense_ratio != null);
+                    const hasExpenseRatio = data.peers.some((p: any) => p.expense_ratio != null);
+                    const hasReturn3Y = data.peers.some((p: any) => p.return_3y != null);
+                    const hasStdDev = data.peers.some((p: any) => p.std_deviation != null);
 
-                                const peerMedian = [...validPeers]
-                                    .sort((a: any, b: any) => a.expense_ratio - b.expense_ratio)
-                                [Math.floor(validPeers.length / 2)].expense_ratio;
+                    return (
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm dark:shadow-xl overflow-hidden flex flex-col transition-all hover:shadow-md dark:hover:bg-slate-900/80">
+                            <div className="p-6 pb-4 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-200">Category Peers Comparison</h3>
+                                {/* Cost Drag Badge */}
+                                {(() => {
+                                    if (data.expense_ratio == null || validPeers.length === 0) return null;
 
-                                const delta = data.expense_ratio - peerMedian;
+                                    const peerMedian = [...validPeers]
+                                        .sort((a: any, b: any) => a.expense_ratio - b.expense_ratio)
+                                    [Math.floor(validPeers.length / 2)].expense_ratio;
 
-                                if (delta > 0.1) {
-                                    return (
-                                        <div className="flex items-center gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 px-3 py-1.5 rounded-lg text-xs" title={`Your fund's expense ratio (${data.expense_ratio}%) is ${delta.toFixed(2)}% higher than the category median (${peerMedian.toFixed(2)}%). This creates a continuous performance drag.`}>
-                                            <AlertTriangle className="w-4 h-4 text-rose-500" />
-                                            <span className="text-rose-700 dark:text-rose-400 font-medium">High Cost Drag Detected</span>
-                                        </div>
-                                    );
-                                }
-                                return null;
-                            })()}
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
-                                    <tr>
-                                        <th className="px-4 py-3 font-medium">Fund Name</th>
-                                        <th className="px-4 py-3 font-medium text-right cursor-help" title="Lower is better. A high expense ratio significantly reduces your net returns over time.">Expense %</th>
-                                        <th className="px-4 py-3 font-medium text-right cursor-help" title="Higher is better. Computed equivalent annual growth rate over 3 years.">3Y Return</th>
-                                        <th className="px-4 py-3 font-medium text-right cursor-help" title="Lower is better. Measures how much the fund's returns fluctuate.">Volatility</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                    {/* Sort peers by 3Y return descending */}
-                                    {data.peers.sort((a: any, b: any) => (b.return_3y || 0) - (a.return_3y || 0)).map((peer: any, i: number) => {
-                                        // Logic to highlight if a peer is strictly better (cheaper AND higher return than the scheme itself if that data was available at parent level)
-                                        // Here we just render the raw peer data cleanly.
+                                    const delta = data.expense_ratio - peerMedian;
+
+                                    if (delta > 0.1) {
                                         return (
-                                            <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                                <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                                                    <div className="font-medium whitespace-nowrap md:whitespace-normal" title={peer.fund_name}>{peer.fund_name}</div>
-                                                    {peer.peer_isin && peer.fund_name === 'Unknown Peer' && (
-                                                        <div className="text-[10px] text-slate-400 font-mono mt-0.5" title="Peer ISIN">ISIN: {peer.peer_isin}</div>
-                                                    )}
-                                                </td>
-                                                <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
-                                                    {peer.expense_ratio != null ? `${peer.expense_ratio.toFixed(2)}%` : '-'}
-                                                </td>
-                                                <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400 block sm:table-cell">
-                                                    {peer.return_3y != null ? (
-                                                        <span className={peer.return_3y > 0 ? "text-emerald-500" : peer.return_3y < 0 ? "text-rose-500" : ""}>
-                                                            {peer.return_3y.toFixed(2)}%
-                                                        </span>
-                                                    ) : '-'}
-                                                </td>
-                                                <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
-                                                    {peer.std_deviation != null ? `${peer.std_deviation.toFixed(2)}%` : '-'}
-                                                </td>
-                                            </tr>
+                                            <div className="flex items-center gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 px-3 py-1.5 rounded-lg text-xs" title={`Your fund's expense ratio (${data.expense_ratio}%) is ${delta.toFixed(2)}% higher than the category median (${peerMedian.toFixed(2)}%). This creates a continuous performance drag.`}>
+                                                <AlertTriangle className="w-4 h-4 text-rose-500" />
+                                                <span className="text-rose-700 dark:text-rose-400 font-medium">High Cost Drag Detected</span>
+                                            </div>
                                         );
-                                    })}
-                                </tbody>
-                            </table>
+                                    }
+                                    return null;
+                                })()}
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
+                                        <tr>
+                                            <th className="px-4 py-3 font-medium">Fund Name</th>
+                                            {hasExpenseRatio && <th className="px-4 py-3 font-medium text-right cursor-help" title="Lower is better. A high expense ratio significantly reduces your net returns over time.">Expense %</th>}
+                                            {hasReturn3Y && <th className="px-4 py-3 font-medium text-right cursor-help" title="Higher is better. Computed equivalent annual growth rate over 3 years.">3Y Return</th>}
+                                            {hasStdDev && <th className="px-4 py-3 font-medium text-right cursor-help" title="Lower is better. Measures how much the fund's returns fluctuate.">Volatility</th>}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                        {/* Sort peers by 3Y return descending */}
+                                        {data.peers.sort((a: any, b: any) => (b.return_3y || 0) - (a.return_3y || 0)).map((peer: any, i: number) => {
+                                            return (
+                                                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                                                        <div className="font-medium whitespace-nowrap md:whitespace-normal" title={peer.fund_name}>{peer.fund_name}</div>
+                                                        {peer.peer_isin && peer.fund_name === 'Unknown Peer' && (
+                                                            <div className="text-[10px] text-slate-400 font-mono mt-0.5" title="Peer ISIN">ISIN: {peer.peer_isin}</div>
+                                                        )}
+                                                    </td>
+                                                    {hasExpenseRatio && (
+                                                        <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                            {peer.expense_ratio != null ? `${peer.expense_ratio.toFixed(2)}%` : '-'}
+                                                        </td>
+                                                    )}
+                                                    {hasReturn3Y && (
+                                                        <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400 block sm:table-cell">
+                                                            {peer.return_3y != null ? (
+                                                                <span className={peer.return_3y > 0 ? "text-emerald-500" : peer.return_3y < 0 ? "text-rose-500" : ""}>
+                                                                    {peer.return_3y.toFixed(2)}%
+                                                                </span>
+                                                            ) : '-'}
+                                                        </td>
+                                                    )}
+                                                    {hasStdDev && (
+                                                        <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                            {peer.std_deviation != null ? `${peer.std_deviation.toFixed(2)}%` : '-'}
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
             </div>
 
 
