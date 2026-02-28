@@ -6,6 +6,7 @@ import { uploadCAS, getSyncStatus } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Eye, EyeOff } from 'lucide-react';
+import ProcessingOverlay from '@/components/ProcessingOverlay';
 
 import { useToast } from '@/components/ui/Toast';
 
@@ -14,7 +15,8 @@ export default function UploadPage() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [phase, setPhase] = useState<'IDLE' | 'READING' | 'UNDERSTANDING' | 'CALCULATING'>('IDLE');
+    const [phase, setPhase] = useState<'IDLE' | 'READING' | 'UNDERSTANDING' | 'CALCULATING' | 'SYNCING' | 'DONE'>('IDLE');
+    const [syncProgress, setSyncProgress] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
     const toast = useToast();
@@ -49,13 +51,16 @@ export default function UploadPage() {
                 }
 
                 // Phase 3: Wait for NAV sync
-                setPhase('CALCULATING');
+                setPhase('SYNCING');
 
                 // Poll for up to 30 seconds
                 let attempts = 0;
                 while (attempts < 15) {
                     try {
                         const syncStatus = await getSyncStatus();
+                        if (syncStatus.progress) {
+                            setSyncProgress(syncStatus.progress);
+                        }
                         if (!syncStatus.is_syncing) {
                             break;
                         }
@@ -66,10 +71,21 @@ export default function UploadPage() {
                     attempts++;
                 }
 
-                toast.success(`Success: Imported ${result.new_transactions || 0} new transactions, skipped ${result.skipped_transactions || 0} duplicates.`);
+                const successMsgs = [];
+                successMsgs.push(`Success: Imported ${result.new_transactions || 0} new transactions, skipped ${result.skipped_transactions || 0} duplicates.`);
+
                 if (result.reconciled_opening_balances && result.reconciled_opening_balances > 0) {
-                    toast.success(`Full history imported! Invested value updated for ${result.reconciled_opening_balances} scheme${result.reconciled_opening_balances > 1 ? 's' : ''}.`);
+                    successMsgs.push(`Full history imported! Invested value updated for ${result.reconciled_opening_balances} scheme${result.reconciled_opening_balances > 1 ? 's' : ''}.`);
                 }
+
+                // Instead of displaying them here where they get immediately destroyed by the hard navigation,
+                // we stash them in sessionStorage for the newly loaded dashboard.
+                sessionStorage.setItem('upload_success_messages', JSON.stringify(successMsgs));
+
+
+                // Show "Done!" animation before redirecting
+                setPhase('DONE');
+                await new Promise(resolve => setTimeout(resolve, 800));
                 // Force a full reload to the dashboard to update the Navbar state
                 window.location.href = '/dashboard';
             } else if (result.status === 'warning' && result.code === 'PAN_MISMATCH') {
@@ -109,88 +125,91 @@ export default function UploadPage() {
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-transparent">
-            <Card className="w-full max-w-md border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl" title="Upload CAS PDF">
-                <form onSubmit={handleSubmit} className="space-y-5">
+        <>
+            <ProcessingOverlay phase={phase} visible={phase !== 'IDLE'} detailText={syncProgress ? `${syncProgress} schemes loaded` : undefined} />
+            <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-transparent">
+                <Card className="w-full max-w-md border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl" title="Upload CAS PDF">
+                    <form onSubmit={handleSubmit} className="space-y-5">
 
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
-                            CAS PDF File
-                        </label>
-                        <input
-                            type="file"
-                            accept=".pdf"
-                            onChange={handleFileChange}
-                            className="block w-full text-sm text-slate-600 dark:text-slate-400
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
+                                CAS PDF File
+                            </label>
+                            <input
+                                type="file"
+                                accept=".pdf"
+                                onChange={handleFileChange}
+                                className="block w-full text-sm text-slate-600 dark:text-slate-400
                 file:mr-4 file:py-2.5 file:px-4
                 file:rounded-xl file:border-0
                 file:text-sm file:font-semibold
                 file:bg-indigo-50 dark:file:bg-indigo-500/10 file:text-indigo-600 dark:file:text-indigo-400
                 hover:file:bg-indigo-100 dark:hover:file:bg-indigo-500/20 transition-colors file:cursor-pointer
                 border border-slate-200 dark:border-white/5 rounded-xl p-1 bg-slate-50 dark:bg-slate-950/50"
-                        />
-                        <p className="mt-2 text-xs text-slate-500 leading-relaxed">
-                            Download your Detailed Consolidated Account Statement from CAMS or KFintech.
-                        </p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
-                            PDF Password
-                        </label>
-                        <div className="relative">
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        processUpload(false);
-                                    }
-                                }}
-                                placeholder="Enter PDF password"
-                                className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-inner pr-10 transition-colors"
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 focus:outline-none transition-colors"
-                            >
-                                {showPassword ? (
-                                    <EyeOff size={18} />
-                                ) : (
-                                    <Eye size={18} />
-                                )}
-                            </button>
+                            <p className="mt-2 text-xs text-slate-500 leading-relaxed">
+                                Download your Detailed Consolidated Account Statement from CAMS or KFintech.
+                            </p>
                         </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-1.5">
+                                PDF Password
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            processUpload(false);
+                                        }
+                                    }}
+                                    placeholder="Enter PDF password"
+                                    className="w-full px-4 py-2.5 border border-slate-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50 dark:bg-slate-950/50 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-inner pr-10 transition-colors"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 focus:outline-none transition-colors"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff size={18} />
+                                    ) : (
+                                        <Eye size={18} />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {error && (
+                            <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl">
+                                {error}
+                            </div>
+                        )}
+
+                        <Button
+                            type="submit"
+                            isLoading={isLoading}
+                            className="w-full justify-center text-base py-3"
+                            disabled={!file || !password || isLoading}
+                        >
+                            {phase === 'IDLE' ? "Upload & Analyze" :
+                                phase === 'READING' ? "Reading statement..." :
+                                    phase === 'UNDERSTANDING' ? "Understanding your statement..." :
+                                        "Calculating portfolio..."}
+                        </Button>
+
+                    </form>
+
+                    <div className="bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-4 mt-6 text-sm text-indigo-800 dark:text-indigo-300 leading-relaxed">
+                        <span className="text-xl inline-block mb-2">💡</span><br />
+                        For accurate invested value, download a <strong className="text-indigo-600 dark:text-indigo-200">Detailed CAS from inception</strong> (not just the last year) from <a href="https://www.camsonline.com" target="_blank" rel="noopener noreferrer" className="underline decoration-indigo-300 dark:decoration-indigo-500/30 hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">mycams.com</a> or <a href="https://www.kfintech.com" target="_blank" rel="noopener noreferrer" className="underline decoration-indigo-300 dark:decoration-indigo-500/30 hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">kfintech.com</a>.
                     </div>
-
-                    {error && (
-                        <div className="p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 text-sm rounded-xl">
-                            {error}
-                        </div>
-                    )}
-
-                    <Button
-                        type="submit"
-                        isLoading={isLoading}
-                        className="w-full justify-center text-base py-3"
-                        disabled={!file || !password || isLoading}
-                    >
-                        {phase === 'IDLE' ? "Upload & Analyze" :
-                            phase === 'READING' ? "Reading statement..." :
-                                phase === 'UNDERSTANDING' ? "Understanding your statement..." :
-                                    "Calculating portfolio..."}
-                    </Button>
-
-                </form>
-
-                <div className="bg-indigo-50 dark:bg-indigo-500/5 border border-indigo-200 dark:border-indigo-500/20 rounded-xl p-4 mt-6 text-sm text-indigo-800 dark:text-indigo-300 leading-relaxed">
-                    <span className="text-xl inline-block mb-2">💡</span><br />
-                    For accurate invested value, download a <strong className="text-indigo-600 dark:text-indigo-200">Detailed CAS from inception</strong> (not just the last year) from <a href="https://www.camsonline.com" target="_blank" rel="noopener noreferrer" className="underline decoration-indigo-300 dark:decoration-indigo-500/30 hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">mycams.com</a> or <a href="https://www.kfintech.com" target="_blank" rel="noopener noreferrer" className="underline decoration-indigo-300 dark:decoration-indigo-500/30 hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors">kfintech.com</a>.
-                </div>
-            </Card>
-        </div>
+                </Card>
+            </div>
+        </>
     );
 }

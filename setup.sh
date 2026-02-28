@@ -103,7 +103,6 @@ mode_docker() {
     success "docker-compose.prod.yml already exists"
   fi
 
-  mkdir -p data
   setup_backend_env ".env"
 
   info "Pulling latest images and starting services..."

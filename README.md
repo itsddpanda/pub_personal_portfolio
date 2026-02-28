@@ -56,7 +56,7 @@ API docs (Swagger UI) at `http://localhost:8001/docs`.
 
 | Variable        | Default                             | Description                          |
 | --------------- | ----------------------------------- | ------------------------------------ |
-| `DATABASE_URL`  | `sqlite:///./mfa.db`                | SQLite database path                 |
+| `DATABASE_URL`  | `sqlite:////data/mfa.db`            | SQLite database path (inside Docker volume) |
 | `CORS_ORIGINS`  | `http://localhost:3001,...`         | Comma-separated allowed origins      |
 
 ---
@@ -77,8 +77,7 @@ mfa/
 │   └── src/
 ├── setup.sh                 # One-step setup script
 ├── docker-compose.yml       # Build from source
-├── docker-compose.prod.yml  # Deploy from pre-built images
-└── data/                    # SQLite database (gitignored)
+└── docker-compose.prod.yml  # Deploy from pre-built images
 ```
 
 ---

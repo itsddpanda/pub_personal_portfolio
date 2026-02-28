@@ -13,11 +13,13 @@ async def get_sync_status(session: Session = Depends(get_session)):
     """
     state_obj = session.get(SystemState, "nav_sync_status")
     last_run_obj = session.get(SystemState, "nav_sync_last_run")
+    progress_obj = session.get(SystemState, "nav_sync_progress")
 
     is_syncing = False
     if state_obj and state_obj.value == "IN_PROGRESS":
         is_syncing = True
 
     last_synced = last_run_obj.value if last_run_obj else None
+    progress = progress_obj.value if progress_obj else "0/0"
 
-    return {"is_syncing": is_syncing, "last_synced": last_synced}
+    return {"is_syncing": is_syncing, "last_synced": last_synced, "progress": progress}

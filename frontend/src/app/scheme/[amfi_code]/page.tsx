@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { getSchemeDetails, getSchemeHistory } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { NAVChart } from '@/components/charts/NAVChart';
+import { EnrichmentView } from '@/components/scheme/EnrichmentView';
 
 interface NAVDataPoint {
     date: string;
@@ -187,15 +188,6 @@ export default function SchemeDetailsPage() {
                 </div>
             </div>
 
-            {/* NAV History Chart */}
-            <div className="mb-10">
-                <NAVChart
-                    data={historyData}
-                    isLoading={historyLoading}
-                    onRefresh={handleRefreshHistory}
-                />
-            </div>
-
             {/* Performance KPI Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                 <div className="bg-white dark:bg-slate-900/50 rounded-2xl p-6 border border-slate-200 dark:border-white/5 shadow-sm flex flex-col justify-between transition-colors">
@@ -252,6 +244,18 @@ export default function SchemeDetailsPage() {
                     </div>
                 </div>
             </div>
+
+            {/* NAV History Chart */}
+            <div className="mb-10">
+                <NAVChart
+                    data={historyData}
+                    isLoading={historyLoading}
+                    onRefresh={handleRefreshHistory}
+                />
+            </div>
+
+            {/* DaaS Advanced Intelligence View */}
+            <EnrichmentView amfiCode={amfiCode} />
 
             {/* Minimalist Ledger Table */}
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-200 mb-4 px-1 drop-shadow-sm">Transaction Ledger</h2>
