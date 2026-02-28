@@ -8,6 +8,7 @@ from collections import defaultdict
 
 from app.services.interfaces.market_data import get_schemes_by_ids
 
+
 def get_portfolio_summary(session: Session, user_id: str):
     """
     Calculates Portfolio XIRR and Total Value using SQL aggregations for performance.

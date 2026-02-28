@@ -4,6 +4,7 @@ from datetime import date
 from sqlmodel import Session, select
 from app.models.models import Scheme
 
+
 class SchemeDTO(BaseModel):
     id: int
     isin: str

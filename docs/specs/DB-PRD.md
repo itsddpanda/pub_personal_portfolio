@@ -86,50 +86,66 @@ Deduplicated via deterministic composite hash.
 
 ---
 
-## 2. Planned Database Extensions (Fund Intelligence)
+## 2. Active Database Schema (Fund Intelligence)
 
-The following tables are planned to support the Fund Intelligence engine. As per requirements, metrics are aggressively cached and auto-purged based on API key expiration + 7 days, or monthly anchors.
+The following tables support the Fund Intelligence engine. Metrics are cached and auto-purged based on API key expiration + 7 days, or monthly anchors.
 
-#### `fund_enrichment` (Parent Entity)
+#### `fundenrichment` (Parent Entity)
 Stores the API fetch payload snapshot and governs lifecycle.
 - `id` (int, PK)
-- `scheme_id` (int, FK -> scheme.id)
+- `scheme_id` (int, FK -> scheme.id, Unique)
 - `fund_name` (str) - Sourced from API
 - `fetched_at` (datetime)
 - `validation_status` (int) - 0: Unvalidated, 1: Passed, 2: Partial, 3: Failed
 - `nav_validation_status` (int)
 - `name_validation_status` (int)
 - `freshness_status` (int)
+- `expense_ratio` (float, nullable)
+- `equity_alloc` (float, nullable)
+- `debt_alloc` (float, nullable)
+- `cash_alloc` (float, nullable)
+- `other_alloc` (float, nullable)
 
-#### `fund_performance`
+#### `fundperformance`
 - `id` (int, PK)
-- `enrichment_id` (int, FK -> fund_enrichment.id)
+- `enrichment_id` (int, FK -> fundenrichment.id, Unique)
+- `returns_1y` (float, nullable)
+- `returns_3y` (float, nullable)
+- `returns_5y` (float, nullable)
+- `returns_tooltip` (str, nullable)
+- `cagr_1y` (float, nullable)
 - `cagr_3y` (float, nullable)
 - `cagr_5y` (float, nullable)
+- `cagr_tooltip` (str, nullable)
 
-#### `fund_risk_metrics`
+#### `fundriskmetrics`
 - `id` (int, PK)
-- `enrichment_id` (int, FK -> fund_enrichment.id)
-- `cat_avg_3y` (float, nullable)
-- `cat_min_3y` (float, nullable)
-- `cat_max_3y` (float, nullable)
-- `sharpe_ratio_3y` (float, nullable)
-- `sortino_ratio_3y` (float, nullable)
-- `risk_std_dev_3y` (float, nullable)
-- `beta_3y` (float, nullable)
+- `enrichment_id` (int, FK -> fundenrichment.id, Unique)
+- `cat_avg_1y / 3y / 5y` (float, nullable)
+- `cat_min_1y / 3y / 5y` (float, nullable)
+- `cat_max_1y / 3y / 5y` (float, nullable)
+- `sharpe_ratio_1y / 3y / 5y` (float, nullable)
+- `sharpe_ratio_tooltip` (str, nullable)
+- `sortino_ratio_1y / 3y / 5y` (float, nullable)
+- `sortino_ratio_tooltip` (str, nullable)
+- `risk_std_dev_1y / 3y / 5y` (float, nullable)
+- `risk_std_dev_tooltip` (str, nullable)
+- `beta_1y / 3y / 5y` (float, nullable)
+- `beta_tooltip` (str, nullable)
 
-#### `fund_holding` (Concentration & Allocation)
+#### `fundholding` (Concentration & Allocation)
 - `id` (int, PK)
-- `enrichment_id` (int, FK -> fund_enrichment.id)
+- `enrichment_id` (int, FK -> fundenrichment.id, Index)
 - `stock_name` (str)
-- `sector` (str)
-- `weighting` (float)
-- `market_value` (float)
+- `sector` (str, nullable)
+- `weighting` (float, nullable)
+- `market_value` (float, nullable)
 
-#### `fund_peer` (Peer Comparison Ranking)
+#### `fundpeer` (Peer Comparison Ranking)
 - `id` (int, PK)
-- `enrichment_id` (int, FK -> fund_enrichment.id)
+- `enrichment_id` (int, FK -> fundenrichment.id, Index)
 - `fund_name` (str)
-- `expense_ratio` (float)
-- `std_deviation` (float)
-- `return_3y` (float)
+- `peer_isin` (str, nullable)
+- `expense_ratio` (float, nullable)
+- `std_deviation` (float, nullable)
+- `return_3y` (float, nullable)

@@ -318,14 +318,14 @@ def backfill_all_schemes():
             progress_state = SystemState(key="nav_sync_progress", value="0/0")
         else:
             progress_state.value = "0/0"
-            
+
         session.add(state)
         session.add(progress_state)
         session.commit()
 
         schemes = session.exec(select(Scheme).where(Scheme.amfi_code != None)).all()
         total_schemes = len(schemes)
-        
+
         for i, scheme in enumerate(schemes):
             # Update progress BEFORE tracking to visually satisfy frontend
             progress_state.value = f"{i}/{total_schemes}"
@@ -336,16 +336,18 @@ def backfill_all_schemes():
             # We just trigger it for everyone.
             backfill_historical_nav(session, scheme.id, scheme.amfi_code)
             time.sleep(0.5)
-            
+
         # Completion Tracking
         state.value = "SUCCESS"
         progress_state.value = f"{total_schemes}/{total_schemes}"
         last_run = session.get(SystemState, "nav_sync_last_run")
         if not last_run:
-            last_run = SystemState(key="nav_sync_last_run", value=datetime.utcnow().isoformat())
+            last_run = SystemState(
+                key="nav_sync_last_run", value=datetime.utcnow().isoformat()
+            )
         else:
             last_run.value = datetime.utcnow().isoformat()
-            
+
         session.add(state)
         session.add(progress_state)
         session.add(last_run)

@@ -162,7 +162,7 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
             return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Data Verified</span>;
         }
         if (validation_status === 2) {
-            return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Minor Variance</span>;
+            return <span title="Minor data discrepancy (e.g., NAV difference ≤ 5% or data freshness > 30 days) compared to official records. Core analysis remains sound." className="cursor-help inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Minor Variance</span>;
         }
         // Assuming 3 is failure
         return <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800"><span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Unverified Data</span>;
@@ -205,138 +205,260 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
-                            {/* Returns */}
-                            {data.performance?.[`returns_${period}`] != null && (
-                                <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        {data.performance?.returns_tooltip ? (
-                                            <span title={data.performance.returns_tooltip} className="cursor-help flex items-center">
-                                                <span className="text-xs text-slate-500 font-medium">Fund Return</span>
-                                                <Info className="w-3 h-3 ml-1 text-slate-300" />
+                        <div className="flex flex-col gap-6">
+                            {/* Primary Metrics */}
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Returns */}
+                                {data.performance?.[`returns_${period}`] != null && (
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 h-[108px] flex flex-col justify-center">
+                                        <div className="flex justify-between items-center mb-1">
+                                            {data.performance?.returns_tooltip ? (
+                                                <span title={data.performance.returns_tooltip} className="cursor-help flex items-center group">
+                                                    <span className="text-xs text-slate-500 font-medium tracking-wide group-hover:text-indigo-500 transition-colors">Return</span>
+                                                    <Info className="w-3.5 h-3.5 ml-1.5 text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 transition-colors" />
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-slate-500 font-medium tracking-wide">Return</span>
+                                            )}
+                                            <span className={`text-sm font-bold font-mono ${data.performance[`returns_${period}`] >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                {Number(data.performance[`returns_${period}`]).toFixed(2)}%
                                             </span>
-                                        ) : (
-                                            <span className="text-xs text-slate-500 font-medium">Fund Return</span>
-                                        )}
-                                        <span className={`text-sm font-bold font-mono ${data.performance[`returns_${period}`] >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                            {Number(data.performance[`returns_${period}`]).toFixed(2)}%
-                                        </span>
-                                    </div>
-                                    {(data.risk_metrics[`cat_avg_${period}`] !== null || data.risk_metrics[`cat_max_${period}`] !== null) && (
-                                        <div className="flex items-center gap-3 mt-1">
-                                            {data.risk_metrics[`cat_avg_${period}`] !== null && (
-                                                <p className="text-[10px] text-slate-400 font-mono">Cat Avg: {Number(data.risk_metrics[`cat_avg_${period}`]).toFixed(2)}%</p>
-                                            )}
-                                            {data.risk_metrics[`cat_max_${period}`] !== null && (
-                                                <p className="text-[10px] text-slate-400 font-mono text-indigo-500/80 dark:text-indigo-400/80">Max: {Number(data.risk_metrics[`cat_max_${period}`]).toFixed(2)}%</p>
-                                            )}
                                         </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Volatility / Deviation */}
-                            {data.risk_metrics?.[`risk_std_dev_${period}`] != null && (
-                                <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        {data.risk_metrics?.risk_std_dev_tooltip ? (
-                                            <span title={data.risk_metrics.risk_std_dev_tooltip} className="cursor-help flex items-center">
-                                                <span className="text-xs text-slate-500 font-medium">Std Deviation</span>
-                                                <Info className="w-3 h-3 ml-1 text-slate-300" />
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-slate-500 font-medium">Std Deviation</span>
+                                        {(data.risk_metrics[`cat_avg_${period}`] !== null || data.risk_metrics[`cat_max_${period}`] !== null) && (
+                                            <div className="flex items-center gap-3 mt-2 border-t border-slate-200/50 dark:border-slate-700 pt-2">
+                                                {data.risk_metrics[`cat_avg_${period}`] !== null && (
+                                                    <p className="text-[10px] text-slate-500 font-mono">Avg: {Number(data.risk_metrics[`cat_avg_${period}`]).toFixed(2)}%</p>
+                                                )}
+                                                {data.risk_metrics[`cat_max_${period}`] !== null && (
+                                                    <p className="text-[10px] text-slate-500 font-mono text-indigo-500/80 dark:text-indigo-400/80">Max: {Number(data.risk_metrics[`cat_max_${period}`]).toFixed(2)}%</p>
+                                                )}
+                                            </div>
                                         )}
-                                        <span className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
-                                            {Number(data.risk_metrics[`risk_std_dev_${period}`]).toFixed(2)}%
-                                        </span>
+                                    </div>
+                                )}
+
+                                {/* Volatility / Deviation */}
+                                {data.risk_metrics?.[`risk_std_dev_${period}`] != null && (
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 h-[108px] flex flex-col justify-center">
+                                        <div className="flex justify-between items-center mb-1">
+                                            {data.risk_metrics?.risk_std_dev_tooltip ? (
+                                                <span title={data.risk_metrics.risk_std_dev_tooltip} className="cursor-help flex items-center group">
+                                                    <span className="text-xs text-slate-500 font-medium tracking-wide group-hover:text-indigo-500 transition-colors">Volatility</span>
+                                                    <Info className="w-3.5 h-3.5 ml-1.5 text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 transition-colors" />
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-slate-500 font-medium tracking-wide">Volatility</span>
+                                            )}
+                                            <span className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
+                                                {Number(data.risk_metrics[`risk_std_dev_${period}`]).toFixed(2)}%
+                                            </span>
+                                        </div>
+                                        <div className="mt-2 text-[10px] text-slate-400 border-t border-slate-200/50 dark:border-slate-700 pt-2">
+                                            Standard Deviation
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Secondary Metrics */}
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                {/* Sharpe Ratio */}
+                                {data.risk_metrics?.[`sharpe_ratio_${period}`] != null && (
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 h-[108px] flex flex-col justify-center">
+                                        <div className="flex justify-between items-center mb-1">
+                                            {data.risk_metrics?.sharpe_ratio_tooltip ? (
+                                                <span title={data.risk_metrics.sharpe_ratio_tooltip} className="cursor-help flex items-center group">
+                                                    <span className="text-xs text-slate-500 font-medium tracking-wide group-hover:text-indigo-500 transition-colors">Sharpe</span>
+                                                    <Info className="w-3.5 h-3.5 ml-1.5 text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 transition-colors" />
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-slate-500 font-medium tracking-wide">Sharpe</span>
+                                            )}
+                                            <span className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
+                                                {Number(data.risk_metrics[`sharpe_ratio_${period}`]).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Sortino Ratio */}
+                                {data.risk_metrics?.[`sortino_ratio_${period}`] != null && (
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 h-[108px] flex flex-col justify-center">
+                                        <div className="flex justify-between items-center mb-1">
+                                            {data.risk_metrics?.sortino_ratio_tooltip ? (
+                                                <span title={data.risk_metrics.sortino_ratio_tooltip} className="cursor-help flex items-center group">
+                                                    <span className="text-xs text-slate-500 font-medium tracking-wide group-hover:text-indigo-500 transition-colors">Sortino</span>
+                                                    <Info className="w-3.5 h-3.5 ml-1.5 text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 transition-colors" />
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-slate-500 font-medium tracking-wide">Sortino</span>
+                                            )}
+                                            <span className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
+                                                {Number(data.risk_metrics[`sortino_ratio_${period}`]).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Beta */}
+                                {data.risk_metrics?.[`beta_${period}`] != null && (
+                                    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-100 dark:border-slate-800 h-[108px] flex flex-col justify-center">
+                                        <div className="flex justify-between items-center mb-1">
+                                            {data.risk_metrics?.beta_tooltip ? (
+                                                <span title={data.risk_metrics.beta_tooltip} className="cursor-help flex items-center group">
+                                                    <span className="text-xs text-slate-500 font-medium tracking-wide group-hover:text-indigo-500 transition-colors">Beta</span>
+                                                    <Info className="w-3.5 h-3.5 ml-1.5 text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 transition-colors" />
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-slate-500 font-medium tracking-wide">Beta</span>
+                                            )}
+                                            <span className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
+                                                {Number(data.risk_metrics[`beta_${period}`]).toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Portfolio Composition (Holdings & Allocation) */}
+                {(data.holdings?.length > 0 || data.equity_alloc != null) && (
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm dark:shadow-xl overflow-hidden flex flex-col transition-all hover:shadow-md dark:hover:bg-slate-900/80">
+                        <div className="p-6 pb-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-200">Portfolio Composition</h3>
+                            {/* Concentration Risk Badge */}
+                            {data.holdings && data.holdings.length >= 5 && (
+                                (() => {
+                                    const top5Weight = data.holdings.slice(0, 5).reduce((acc: number, h: any) => acc + (h.weighting || 0), 0);
+                                    if (top5Weight > 35) {
+                                        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border border-rose-200 dark:border-rose-800" title="Top 5 holdings exceed 35% of total portfolio."><AlertTriangle className="w-3 h-3" /> High Concentration</span>;
+                                    } else if (top5Weight > 25) {
+                                        return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800" title="Top 5 holdings exceed 25% of total portfolio."><AlertTriangle className="w-3 h-3" /> Mod. Concentration</span>;
+                                    }
+                                    return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">Well Diversified</span>;
+                                })()
+                            )}
+                        </div>
+
+                        <div className="p-6 flex flex-col gap-6">
+                            {/* Asset Allocation Bar */}
+                            {(data.equity_alloc != null || data.debt_alloc != null || data.cash_alloc != null) && (
+                                <div>
+                                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Asset Allocation</h4>
+                                    <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                                        {data.equity_alloc > 0 && <div style={{ width: `${data.equity_alloc}%` }} className="bg-indigo-500" title={`Equity: ${data.equity_alloc}%`} />}
+                                        {data.debt_alloc > 0 && <div style={{ width: `${data.debt_alloc}%` }} className="bg-sky-500" title={`Debt: ${data.debt_alloc}%`} />}
+                                        {data.cash_alloc > 0 && <div style={{ width: `${data.cash_alloc}%` }} className="bg-emerald-500" title={`Cash: ${data.cash_alloc}%`} />}
+                                        {data.other_alloc > 0 && <div style={{ width: `${data.other_alloc}%` }} className="bg-amber-500" title={`Other: ${data.other_alloc}%`} />}
+                                    </div>
+                                    <div className="flex gap-4 mt-2 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                        {data.equity_alloc > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-indigo-500" />Equity: {data.equity_alloc}%</span>}
+                                        {data.debt_alloc > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-sky-500" />Debt: {data.debt_alloc}%</span>}
+                                        {data.cash_alloc > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" />Cash: {data.cash_alloc}%</span>}
+                                        {data.other_alloc > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" />Other: {data.other_alloc}%</span>}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Sharpe Ratio */}
-                            {data.risk_metrics?.[`sharpe_ratio_${period}`] != null && (
+                            {/* Top Holdings */}
+                            {data.holdings?.length > 0 && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        {data.risk_metrics?.sharpe_ratio_tooltip ? (
-                                            <span title={data.risk_metrics.sharpe_ratio_tooltip} className="cursor-help flex items-center">
-                                                <span className="text-xs text-slate-500 font-medium">Sharpe Ratio</span>
-                                                <Info className="w-3 h-3 ml-1 text-slate-300" />
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-slate-500 font-medium">Sharpe Ratio</span>
-                                        )}
-                                        <span className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
-                                            {Number(data.risk_metrics[`sharpe_ratio_${period}`]).toFixed(2)}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Sortino Ratio */}
-                            {data.risk_metrics?.[`sortino_ratio_${period}`] != null && (
-                                <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        {data.risk_metrics?.sortino_ratio_tooltip ? (
-                                            <span title={data.risk_metrics.sortino_ratio_tooltip} className="cursor-help flex items-center">
-                                                <span className="text-xs text-slate-500 font-medium">Sortino Ratio</span>
-                                                <Info className="w-3 h-3 ml-1 text-slate-300" />
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-slate-500 font-medium">Sortino Ratio</span>
-                                        )}
-                                        <span className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
-                                            {Number(data.risk_metrics[`sortino_ratio_${period}`]).toFixed(2)}
-                                        </span>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Beta */}
-                            {data.risk_metrics?.[`beta_${period}`] != null && (
-                                <div>
-                                    <div className="flex justify-between items-center mb-1">
-                                        {data.risk_metrics?.beta_tooltip ? (
-                                            <span title={data.risk_metrics.beta_tooltip} className="cursor-help flex items-center">
-                                                <span className="text-xs text-slate-500 font-medium">Beta</span>
-                                                <Info className="w-3 h-3 ml-1 text-slate-300" />
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-slate-500 font-medium">Beta</span>
-                                        )}
-                                        <span className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
-                                            {Number(data.risk_metrics[`beta_${period}`]).toFixed(2)}
-                                        </span>
+                                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Top Holdings</h4>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left text-sm">
+                                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                                {data.holdings.slice(0, 5).map((h: any, i: number) => (
+                                                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                        <td className="py-2 text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{h.stock_name}</td>
+                                                        <td className="py-2 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                            {h.weighting ? `${h.weighting.toFixed(2)}%` : '-'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             )}
                         </div>
                     </div>
                 )}
-
-                {/* Top Holdings Table */}
-                {data.holdings && data.holdings.length > 0 && (
+                {/* Peer Comparison Table & Cost Drag */}
+                {data.peers?.length > 0 && (
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm dark:shadow-xl overflow-hidden flex flex-col transition-all hover:shadow-md dark:hover:bg-slate-900/80">
-                        <div className="p-6 pb-4 border-b border-slate-100 dark:border-white/5">
-                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-200">Top 5 Holdings Allocation</h3>
+                        <div className="p-6 pb-4 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-200">Category Peers Comparison</h3>
+                            {/* Cost Drag Badge */}
+                            {(() => {
+                                if (data.expense_ratio == null || data.peers.length === 0) return null;
+                                const validPeers = data.peers.filter((p: any) => p.expense_ratio != null);
+                                if (validPeers.length === 0) return null;
+
+                                const peerMedian = [...validPeers]
+                                    .sort((a: any, b: any) => a.expense_ratio - b.expense_ratio)
+                                [Math.floor(validPeers.length / 2)].expense_ratio;
+
+                                const delta = data.expense_ratio - peerMedian;
+
+                                if (delta > 0.1) {
+                                    return (
+                                        <div className="flex items-center gap-2 bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 px-3 py-1.5 rounded-lg text-xs" title={`Your fund's expense ratio (${data.expense_ratio}%) is ${delta.toFixed(2)}% higher than the category median (${peerMedian.toFixed(2)}%). This creates a continuous performance drag.`}>
+                                            <AlertTriangle className="w-4 h-4 text-rose-500" />
+                                            <span className="text-rose-700 dark:text-rose-400 font-medium">High Cost Drag Detected</span>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
                         </div>
-                        <div className="overflow-x-auto flex-1">
+                        <div className="overflow-x-auto">
                             <table className="w-full text-left text-sm">
+                                <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-4 py-3 font-medium">Fund Name</th>
+                                        <th className="px-4 py-3 font-medium text-right cursor-help" title="Lower is better. A high expense ratio significantly reduces your net returns over time.">Expense %</th>
+                                        <th className="px-4 py-3 font-medium text-right cursor-help" title="Higher is better. Computed equivalent annual growth rate over 3 years.">3Y Return</th>
+                                        <th className="px-4 py-3 font-medium text-right cursor-help" title="Lower is better. Measures how much the fund's returns fluctuate.">Volatility</th>
+                                    </tr>
+                                </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                    {data.holdings.slice(0, 5).map((h: any, i: number) => (
-                                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                            <td className="px-4 py-2 text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{h.stock_name}</td>
-                                            <td className="px-4 py-2 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
-                                                {h.weighting ? `${h.weighting.toFixed(2)}%` : '-'}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {/* Sort peers by 3Y return descending */}
+                                    {data.peers.sort((a: any, b: any) => (b.return_3y || 0) - (a.return_3y || 0)).map((peer: any, i: number) => {
+                                        // Logic to highlight if a peer is strictly better (cheaper AND higher return than the scheme itself if that data was available at parent level)
+                                        // Here we just render the raw peer data cleanly.
+                                        return (
+                                            <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                                                    <div className="font-medium whitespace-nowrap md:whitespace-normal" title={peer.fund_name}>{peer.fund_name}</div>
+                                                    {peer.peer_isin && peer.fund_name === 'Unknown Peer' && (
+                                                        <div className="text-[10px] text-slate-400 font-mono mt-0.5" title="Peer ISIN">ISIN: {peer.peer_isin}</div>
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                    {peer.expense_ratio != null ? `${peer.expense_ratio.toFixed(2)}%` : '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400 block sm:table-cell">
+                                                    {peer.return_3y != null ? (
+                                                        <span className={peer.return_3y > 0 ? "text-emerald-500" : peer.return_3y < 0 ? "text-rose-500" : ""}>
+                                                            {peer.return_3y.toFixed(2)}%
+                                                        </span>
+                                                    ) : '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                    {peer.std_deviation != null ? `${peer.std_deviation.toFixed(2)}%` : '-'}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 )}
             </div>
+
 
             <div className="text-right">
                 <p className="text-[10px] text-slate-400 font-mono">Data intelligence generated on {new Date(data.fetched_at).toLocaleDateString()}</p>
