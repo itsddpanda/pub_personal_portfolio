@@ -19,6 +19,39 @@ logger = logging.getLogger(__name__)
 
 DAAS_BASE_URL = "https://money-calc-gateway.ddpanda.workers.dev"
 
+_isin_to_name_cache: Optional[Dict[str, str]] = None
+
+def _get_name_from_navall(isin: str) -> Optional[str]:
+    """Helper to lazy-load NAVAll.txt and extract the scheme name for an ISIN.
+    Works inside docker (/data/) or running locally (backend/data/)."""
+    global _isin_to_name_cache
+    if _isin_to_name_cache is None:
+        _isin_to_name_cache = {}
+        paths = ["/data/NAVAll.txt", "data/NAVAll.txt", "backend/data/NAVAll.txt", "../data/NAVAll.txt"]
+        nav_file = None
+        for p in paths:
+            if os.path.exists(p):
+                nav_file = p
+                break
+        
+        if nav_file:
+            try:
+                with open(nav_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    for line in f:
+                        parts = line.split(';')
+                        if len(parts) >= 4:
+                            isin1 = parts[1].strip()
+                            isin2 = parts[2].strip()
+                            name = parts[3].strip()
+                            if isin1 and isin1 != '-':
+                                _isin_to_name_cache[isin1] = name
+                            if isin2 and isin2 != '-':
+                                _isin_to_name_cache[isin2] = name
+            except Exception as e:
+                logger.error(f"Failed to load NAVAll cache: {e}")
+
+    return _isin_to_name_cache.get(isin)
+
 
 class DaasProcessingException(Exception):
     """Raised when the DaaS API returns 503 (background calculation in progress)."""
@@ -326,13 +359,18 @@ def parse_enrichment_response(
         peer_name = p.get("peer_name") or p.get("fund_name")
         peer_isin = p.get("peer_isin")
 
-        if not peer_name and peer_isin and session:
-            # Fallback to local DB lookup
-            local_scheme = session.exec(
-                select(Scheme).where(Scheme.isin == peer_isin)
-            ).first()
-            if local_scheme:
-                peer_name = local_scheme.name
+        if not peer_name and peer_isin:
+            # 1. Try local NAVAll file first
+            navall_name = _get_name_from_navall(peer_isin)
+            if navall_name:
+                peer_name = navall_name
+            # 2. Fallback to Scheme table
+            elif session:
+                local_scheme = session.exec(
+                    select(Scheme).where(Scheme.isin == peer_isin)
+                ).first()
+                if local_scheme:
+                    peer_name = local_scheme.name
 
         if not peer_name:
             peer_name = "Unknown Peer"

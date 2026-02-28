@@ -55,3 +55,6 @@ docs/*
 !docs/specs/
 backend/tests/*
 integration/*
+daas_inf209.json
+test_daas.py
+.gitignore
