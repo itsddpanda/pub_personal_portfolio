@@ -12,6 +12,7 @@ from app.models.models import (
     FundHolding,
     FundPeer,
     FundManager,
+    FundSector,
     Scheme,
 )
 from sqlmodel import Session, select
@@ -479,6 +480,26 @@ def parse_enrichment_response(
             )
         )
     enrichment.holdings = holdings_list
+
+    # 4.5. Sectors
+    sectors_data = data.get("fund_sectors", [])
+    if not isinstance(sectors_data, list):
+        sectors_data = []
+
+    sectors_list = []
+    for s in sectors_data:
+        if not s or not isinstance(s, dict):
+            continue
+
+        sectors_list.append(
+            FundSector(
+                sector_name=s.get("sector_name") or "Unknown Sector",
+                weighting=_safe_float(s.get("weighting")),
+                market_value=_safe_float(s.get("market_value")),
+                change_1m=_safe_float(s.get("change_1m")),
+            )
+        )
+    enrichment.sectors = sectors_list
 
     # 5. Peers
     peers_data = data.get("fund_peers", [])
