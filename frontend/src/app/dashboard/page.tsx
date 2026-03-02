@@ -166,7 +166,7 @@ export default function DashboardPage() {
 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/90 dark:bg-slate-900/50 backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-lg gap-4">
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Portfolio Dashboard <span className="text-sm font-mono font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md ml-2 align-middle">v1.1</span></h1>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">Portfolio Dashboard <span className="text-sm font-mono font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md ml-2 align-middle">v0.9.78</span></h1>
                     <div className="flex flex-wrap items-center gap-3">
                         {syncing ? (
                             <div className="flex items-center text-indigo-600 dark:text-indigo-400 text-sm font-medium bg-indigo-50 dark:bg-indigo-500/10 px-3 py-1.5 rounded-full border border-indigo-200 dark:border-indigo-500/20">

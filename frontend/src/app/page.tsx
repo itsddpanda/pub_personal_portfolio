@@ -38,7 +38,7 @@ export default function Home() {
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex mb-16">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-slate-900/50 pb-6 pt-8 backdrop-blur-xl lg:static lg:w-auto lg:rounded-2xl lg:border lg:bg-slate-100/50 dark:lg:bg-slate-800/50 lg:p-4 text-slate-800 dark:text-slate-300 shadow-sm dark:shadow-none">
           Mutual Fund Analyzer &nbsp;
-          <code className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded">v1.1</code>
+          <code className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded">v0.9.78</code>
         </p>
       </div>
 
