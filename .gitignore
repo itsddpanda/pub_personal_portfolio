@@ -45,7 +45,7 @@ tmp/
 *.sqlite3
 mfa.db
 .agent/
-debug_db.py
+*.py
 rca_compare.py
 get_cas_schema.py
 *.txt

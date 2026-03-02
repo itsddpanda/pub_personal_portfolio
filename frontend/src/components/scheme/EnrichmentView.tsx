@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
 import { getSchemeEnrichment, RetryableError } from '@/lib/api';
 
 import { Button } from '@/components/ui/Button';
@@ -15,7 +16,8 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
     const [countdown, setCountdown] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [period, setPeriod] = useState<"1y" | "3y" | "5y">("1y");
-    const [peerPeriod, setPeerPeriod] = useState<"1y" | "3y" | "5y">("1y");
+    const [peerView, setPeerView] = useState<"performance" | "risk" | "fundamentals">("performance");
+    const [holdingsView, setHoldingsView] = useState<"heaviest" | "increased" | "decreased">("heaviest");
     const toast = useToast();
 
     const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -231,9 +233,22 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 border border-slate-100 dark:border-slate-800">
                     <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider mb-1">Riskometer</p>
-                    <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs">
-                        {data.riskometer || '-'}
-                    </p>
+                    {(() => {
+                        const risk = data.riskometer || "";
+                        let color = "text-slate-900 dark:text-slate-100";
+                        if (risk.toLowerCase().includes("low to moderate")) color = "text-emerald-500 dark:text-emerald-400";
+                        else if (risk.toLowerCase().includes("low")) color = "text-emerald-600 dark:text-emerald-500";
+                        else if (risk.toLowerCase().includes("moderately high")) color = "text-orange-500 dark:text-orange-400";
+                        else if (risk.toLowerCase().includes("very high")) color = "text-rose-600 dark:text-rose-500";
+                        else if (risk.toLowerCase().includes("high")) color = "text-rose-500 dark:text-rose-400";
+                        else if (risk.toLowerCase().includes("moderate")) color = "text-amber-500 dark:text-amber-400";
+
+                        return (
+                            <p className={`font-semibold text-xs ${color}`}>
+                                {risk || '-'}
+                            </p>
+                        );
+                    })()}
                 </div>
             </div>
 
@@ -576,6 +591,10 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                             sectorMap[h.sector] = (sectorMap[h.sector] || 0) + h.weighting;
                                         }
                                     });
+                                    const totalSectorWeight = Object.values(sectorMap).reduce((a, b) => a + b, 0);
+                                    // Hack to handle anomalous FOF data where underlying holdings aggregate > 100%
+                                    const scale = totalSectorWeight > 100 ? 100 / totalSectorWeight : 1;
+
                                     const topSectors = Object.entries(sectorMap)
                                         .sort(([, a], [, b]) => b - a)
                                         .slice(0, 5);
@@ -587,14 +606,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Top Sectors</h4>
                                             <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                                 {topSectors.map(([sector, weight], idx) => (
-                                                    <div key={sector} style={{ width: `${weight}%` }} className={colors[idx % colors.length]} title={`${sector}: ${weight.toFixed(2)}%`} />
+                                                    <div key={sector} style={{ width: `${(weight * scale)}%` }} className={colors[idx % colors.length]} title={`${sector}: ${(weight * scale).toFixed(2)}%`} />
                                                 ))}
                                             </div>
                                             <div className="flex flex-wrap gap-4 mt-2 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                                                 {topSectors.map(([sector, weight], idx) => (
                                                     <span key={sector} className="flex items-center gap-1">
                                                         <span className={`w-2 h-2 rounded-full ${colors[idx % colors.length]}`} />
-                                                        {sector}: {weight.toFixed(2)}%
+                                                        {sector}: {(weight * scale).toFixed(2)}%
                                                     </span>
                                                 ))}
                                             </div>
@@ -604,25 +623,67 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                             </div>
 
                             {/* Top Holdings */}
-                            {data.holdings?.length > 0 && (
-                                <div>
-                                    <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Top Holdings</h4>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left text-sm">
-                                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                                {data.holdings.slice(0, 5).map((h: any, i: number) => (
-                                                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                                        <td className="py-2 text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{h.stock_name}</td>
-                                                        <td className="py-2 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
-                                                            {h.weighting ? `${h.weighting.toFixed(2)}%` : '-'}
-                                                        </td>
-                                                    </tr>
+                            {data.holdings?.length > 0 && (() => {
+                                const validHoldings = data.holdings.filter((h: any) => h.weighting != null);
+                                let displayedHoldings = [...validHoldings];
+
+                                if (holdingsView === 'heaviest') {
+                                    displayedHoldings.sort((a, b) => (b.weighting || 0) - (a.weighting || 0));
+                                } else if (holdingsView === 'increased') {
+                                    displayedHoldings = displayedHoldings.filter(h => h.change_1m > 0).sort((a, b) => b.change_1m - a.change_1m);
+                                } else if (holdingsView === 'decreased') {
+                                    displayedHoldings = displayedHoldings.filter(h => h.change_1m < 0).sort((a, b) => a.change_1m - b.change_1m);
+                                }
+
+                                displayedHoldings = displayedHoldings.slice(0, 5);
+
+                                return (
+                                    <div className="mt-6">
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Top Holdings</h4>
+                                            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 shrink-0 self-start sm:self-auto">
+                                                {(["heaviest", "increased", "decreased"] as const).map(v => (
+                                                    <button
+                                                        key={v}
+                                                        onClick={() => setHoldingsView(v)}
+                                                        className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${holdingsView === v ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                                    >
+                                                        {v === 'heaviest' ? 'HEAVIEST' : v === 'increased' ? 'INCREASED' : 'DECREASED'}
+                                                    </button>
                                                 ))}
-                                            </tbody>
-                                        </table>
+                                            </div>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left text-sm">
+                                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                                    {displayedHoldings.length === 0 ? (
+                                                        <tr><td colSpan={3} className="py-4 text-center text-slate-500 text-xs italic">No holdings found for this view.</td></tr>
+                                                    ) : displayedHoldings.map((h: any, i: number) => (
+                                                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                            <td className="py-2 text-slate-700 dark:text-slate-300 truncate max-w-[150px]">{h.stock_name}</td>
+                                                            <td className="py-2 pr-2 text-right font-mono font-medium text-slate-900 dark:text-slate-400 w-[60px]">
+                                                                {h.weighting ? `${h.weighting.toFixed(2)}%` : '-'}
+                                                            </td>
+                                                            {(holdingsView === 'increased' || holdingsView === 'decreased') && (
+                                                                <td className="py-2 text-right font-mono text-xs w-[60px]">
+                                                                    <span className={h.change_1m > 0 ? "text-emerald-500" : h.change_1m < 0 ? "text-rose-500" : "text-slate-400"}>
+                                                                        {h.change_1m > 0 ? '+' : ''}{h.change_1m.toFixed(2)}%
+                                                                    </span>
+                                                                </td>
+                                                            )}
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 text-center sm:text-right">
+                                            <Link href={`/drilldown/holdings/${amfiCode}`} className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 uppercase tracking-widest inline-flex items-center gap-1 transition-colors">
+                                                Explore All Holdings <ChevronRight className="w-3 h-3" />
+                                            </Link>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                );
+                            })()}
                         </div>
                     </div>
                 )}
@@ -630,25 +691,27 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                 {data.peers?.length > 0 && (() => {
                     const validPeers = data.peers.filter((p: any) => p.expense_ratio != null);
                     const hasExpenseRatio = data.peers.some((p: any) => p.expense_ratio != null);
-                    const returnKey = `cagr_${peerPeriod}`;
-                    const hasReturn = data.peers.some((p: any) => p[returnKey] != null);
-                    const hasStdDev = data.peers.some((p: any) => p.std_deviation != null);
+                    const hasDebtMetrics = data.peers.some((p: any) => p.yield_to_maturity != null || p.modified_duration != null);
+                    const hasTurnover = data.peers.some((p: any) => p.portfolio_turnover != null);
+
+                    // Always sort peers by 1Y/3Y/5Y return
+                    const sortedPeers = [...data.peers].sort((a: any, b: any) => {
+                        const valA = a.cagr_1y ?? a.cagr_3y ?? a.cagr_5y ?? 0;
+                        const valB = b.cagr_1y ?? b.cagr_3y ?? b.cagr_5y ?? 0;
+                        return valB - valA;
+                    });
 
                     return (
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl shadow-sm dark:shadow-xl overflow-hidden flex flex-col transition-all hover:shadow-md dark:hover:bg-slate-900/80">
                             <div className="p-6 pb-4 border-b border-slate-100 dark:border-white/5 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                                 <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-200">Category Peers Comparison</h3>
                                 <div className="flex items-center gap-4 flex-wrap">
-                                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 shrink-0">
-                                        {(["1y", "3y", "5y"] as const).map(p => (
-                                            <button
-                                                key={p}
-                                                onClick={() => setPeerPeriod(p)}
-                                                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${peerPeriod === p ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                                            >
-                                                {p.toUpperCase()}
-                                            </button>
-                                        ))}
+                                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 shrink-0 overflow-x-auto overflow-y-hidden max-w-[100vw]">
+                                        <button onClick={() => setPeerView('performance')} className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${peerView === 'performance' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>PERFORMANCE</button>
+                                        <button onClick={() => setPeerView('risk')} className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${peerView === 'risk' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>RISK & COST</button>
+                                        {hasDebtMetrics && (
+                                            <button onClick={() => setPeerView('fundamentals')} className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${peerView === 'fundamentals' ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}>DEBT METRICS</button>
+                                        )}
                                     </div>
                                     {/* Cost Drag Badge */}
                                     {(() => {
@@ -676,15 +739,33 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                 <table className="w-full text-left text-sm">
                                     <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider">
                                         <tr>
-                                            <th className="px-4 py-3 font-medium">Fund Name</th>
-                                            {hasExpenseRatio && <th className="px-4 py-3 font-medium text-right cursor-help" title="Lower is better. A high expense ratio significantly reduces your net returns over time.">Expense %</th>}
-                                            {hasReturn && <th className="px-4 py-3 font-medium text-right cursor-help" title={`Higher is better. Computed equivalent annual growth rate over ${peerPeriod.replace('y', ' years')}.`}>{peerPeriod.toUpperCase()} Return</th>}
-                                            {hasStdDev && <th className="px-4 py-3 font-medium text-right cursor-help" title="Lower is better. Measures how much the fund's returns fluctuate.">Volatility</th>}
+                                            <th className="px-4 py-3 font-medium min-w-[150px]">Fund Name</th>
+                                            {peerView === 'performance' && (
+                                                <>
+                                                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">1Y Ret</th>
+                                                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">3Y Ret</th>
+                                                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">5Y Ret</th>
+                                                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">10Y Ret</th>
+                                                </>
+                                            )}
+                                            {peerView === 'risk' && (
+                                                <>
+                                                    {hasExpenseRatio && <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Expense %</th>}
+                                                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Volatility</th>
+                                                    {hasTurnover && <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Turnover %</th>}
+                                                </>
+                                            )}
+                                            {peerView === 'fundamentals' && hasDebtMetrics && (
+                                                <>
+                                                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">YTM</th>
+                                                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Mod Duration</th>
+                                                    <th className="px-4 py-3 font-medium text-right whitespace-nowrap">Avg Maturity</th>
+                                                </>
+                                            )}
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                        {/* Sort peers by selected return descending */}
-                                        {data.peers.sort((a: any, b: any) => (b[returnKey] || 0) - (a[returnKey] || 0)).map((peer: any, i: number) => {
+                                        {sortedPeers.map((peer: any, i: number) => {
                                             return (
                                                 <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                                                     <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
@@ -693,30 +774,62 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                                             <div className="text-[10px] text-slate-400 font-mono mt-0.5" title="Peer ISIN">ISIN: {peer.peer_isin}</div>
                                                         )}
                                                     </td>
-                                                    {hasExpenseRatio && (
-                                                        <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
-                                                            {peer.expense_ratio != null ? `${peer.expense_ratio.toFixed(2)}%` : '-'}
-                                                        </td>
+                                                    {peerView === 'performance' && (
+                                                        <>
+                                                            <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                {peer.cagr_1y != null ? <span className={peer.cagr_1y > 0 ? "text-emerald-500" : peer.cagr_1y < 0 ? "text-rose-500" : ""}>{peer.cagr_1y.toFixed(2)}%</span> : '-'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                {peer.cagr_3y != null ? <span className={peer.cagr_3y > 0 ? "text-emerald-500" : peer.cagr_3y < 0 ? "text-rose-500" : ""}>{peer.cagr_3y.toFixed(2)}%</span> : '-'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                {peer.cagr_5y != null ? <span className={peer.cagr_5y > 0 ? "text-emerald-500" : peer.cagr_5y < 0 ? "text-rose-500" : ""}>{peer.cagr_5y.toFixed(2)}%</span> : '-'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                {peer.cagr_10y != null ? <span className={peer.cagr_10y > 0 ? "text-emerald-500" : peer.cagr_10y < 0 ? "text-rose-500" : ""}>{peer.cagr_10y.toFixed(2)}%</span> : '-'}
+                                                            </td>
+                                                        </>
                                                     )}
-                                                    {hasReturn && (
-                                                        <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400 block sm:table-cell">
-                                                            {peer[returnKey] != null ? (
-                                                                <span className={peer[returnKey] > 0 ? "text-emerald-500" : peer[returnKey] < 0 ? "text-rose-500" : ""}>
-                                                                    {peer[returnKey].toFixed(2)}%
-                                                                </span>
-                                                            ) : '-'}
-                                                        </td>
+                                                    {peerView === 'risk' && (
+                                                        <>
+                                                            {hasExpenseRatio && (
+                                                                <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                    {peer.expense_ratio != null ? `${peer.expense_ratio.toFixed(2)}%` : '-'}
+                                                                </td>
+                                                            )}
+                                                            <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                {peer.std_deviation != null ? `${peer.std_deviation.toFixed(2)}%` : '-'}
+                                                            </td>
+                                                            {hasTurnover && (
+                                                                <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                    {peer.portfolio_turnover != null ? `${peer.portfolio_turnover.toFixed(2)}%` : '-'}
+                                                                </td>
+                                                            )}
+                                                        </>
                                                     )}
-                                                    {hasStdDev && (
-                                                        <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
-                                                            {peer.std_deviation != null ? `${peer.std_deviation.toFixed(2)}%` : '-'}
-                                                        </td>
+                                                    {peerView === 'fundamentals' && hasDebtMetrics && (
+                                                        <>
+                                                            <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                {peer.yield_to_maturity != null ? `${peer.yield_to_maturity.toFixed(2)}%` : '-'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                {peer.modified_duration != null ? `${peer.modified_duration.toFixed(2)}` : '-'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right font-mono font-medium text-slate-900 dark:text-slate-400">
+                                                                {peer.avg_eff_maturity != null ? `${peer.avg_eff_maturity.toFixed(2)}` : '-'}
+                                                            </td>
+                                                        </>
                                                     )}
                                                 </tr>
                                             );
                                         })}
                                     </tbody>
                                 </table>
+                            </div>
+                            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/5 text-center sm:text-right p-4 sm:p-6 pb-2 pt-0">
+                                <Link href={`/drilldown/peers/${amfiCode}`} className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 uppercase tracking-widest inline-flex items-center gap-1 transition-colors">
+                                    Compare All Peers <ChevronRight className="w-3 h-3" />
+                                </Link>
                             </div>
                         </div>
                     );
