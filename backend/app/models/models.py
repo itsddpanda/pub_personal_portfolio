@@ -223,6 +223,10 @@ class FundEnrichment(SQLModel, table=True):
         back_populates="enrichment",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
+    sectors: List["FundSector"] = Relationship(
+        back_populates="enrichment",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+    )
     peers: List["FundPeer"] = Relationship(
         back_populates="enrichment",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
@@ -308,6 +312,17 @@ class FundHolding(SQLModel, table=True):
     holdings_history: Optional[str] = None  # NEW: JSON array [{per, weightage}]
 
     enrichment: FundEnrichment = Relationship(back_populates="holdings")
+
+
+class FundSector(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    enrichment_id: int = Field(foreign_key="fundenrichment.id", index=True)
+    sector_name: Optional[str] = Field(default="Unknown Sector")
+    weighting: Optional[float] = None
+    market_value: Optional[float] = None
+    change_1m: Optional[float] = None
+
+    enrichment: FundEnrichment = Relationship(back_populates="sectors")
 
 
 class FundPeer(SQLModel, table=True):

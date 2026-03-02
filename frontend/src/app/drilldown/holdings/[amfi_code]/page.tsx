@@ -59,14 +59,23 @@ export default function HoldingsDrilldownPage() {
                                 // We reverse it here to make it easier to find "1 month ago, 2 months ago"
                                 const rev = [...parsedHistory].reverse();
 
-                                // Current weighting is index 0. 
-                                // 1M ago is index 1, 2M ago is index 2, 3M ago is index 3.
-                                // NOTE: change_1m is already provided by the API accurately, so we use that.
-                                if (rev.length > 2 && rev[2].weightage != null && h.weighting != null) {
-                                    c2m = h.weighting - rev[2].weightage;
+                                // If the history does NOT include the current weighting at the very end, we should add it
+                                // so the sparkline plots the trend up to the current value.
+                                if (parsedHistory.length > 0 && h.weighting != null) {
+                                  // Quick heuristic: If the last item in history is exactly the same as current weight,
+                                  // it might already be included. If not, append it.
+                                  if (parsedHistory[parsedHistory.length - 1].weightage !== h.weighting) {
+                                      parsedHistory.push({ per: "Current", weightage: h.weighting });
+                                  }
                                 }
-                                if (rev.length > 3 && rev[3].weightage != null && h.weighting != null) {
-                                    c3m = h.weighting - rev[3].weightage;
+
+                                // 1M ago is index 0 in `rev`, 2M ago is index 1, 3M ago is index 2.
+                                // NOTE: change_1m is already provided by the API accurately, so we use that.
+                                if (rev.length > 1 && rev[1].weightage != null && h.weighting != null) {
+                                    c2m = h.weighting - rev[1].weightage;
+                                }
+                                if (rev.length > 2 && rev[2].weightage != null && h.weighting != null) {
+                                    c3m = h.weighting - rev[2].weightage;
                                 }
                             } catch (e) {
                                 console.error("Could not parse history", e);
