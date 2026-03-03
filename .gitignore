@@ -53,7 +53,7 @@ get_cas_schema.py
 # Docs & local notes (not for version control)
 docs/
 backend/tests/*
-integration/*
+#integration/*
 daas_inf209.json
 test_daas.py
 .gitignore
