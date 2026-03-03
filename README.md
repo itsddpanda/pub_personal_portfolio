@@ -31,11 +31,27 @@ chmod +x setup.sh && ./setup.sh
 
 | Image | URL |
 |-------|-----|
-| Backend | `ghcr.io/itsddpanda/private_fund_analyzer-backend:latest` |
-| Frontend | `ghcr.io/itsddpanda/private_fund_analyzer-frontend:latest` |
+| Backend | `ghcr.io/itsddpanda/private_fund_analyzer-backend:vX.Y.Z` |
+| Frontend | `ghcr.io/itsddpanda/private_fund_analyzer-frontend:vX.Y.Z` |
 
-The backend API is available at `http://localhost:8001/api`.  
-API docs (Swagger UI) at `http://localhost:8001/docs`.
+> Production recommendation: pin immutable image tags (`vX.Y.Z`) in `docker-compose.prod.yml` and use `latest` only when you intentionally want rolling updates.
+
+For source/local mode (`./setup.sh local`), the backend API is available at `http://localhost:8001/api` and docs at `http://localhost:8001/docs`. In production compose mode (`./setup.sh docker`), backend is internal-only by default and frontend is exposed at `http://localhost:3001`.
+
+
+### Rollback to a Previous Image Tag
+
+If a newly deployed release has issues, switch both services to a prior immutable tag:
+
+```bash
+# Example rollback target
+export BACKEND_IMAGE_TAG=v1.3.1
+export FRONTEND_IMAGE_TAG=v1.3.1
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+```
+
+You can also place `BACKEND_IMAGE_TAG` and `FRONTEND_IMAGE_TAG` in your shell environment, `.env`, or deployment system variables.
 
 ---
 
@@ -93,7 +109,35 @@ curl http://localhost:8001/api/health
 
 ## ⚙️ Operational Notes (Fund Intelligence)
 
+### Backend Startup Phases (container)
+
+`backend/start.sh` runs in ordered phases with structured logs:
+
+1. `preflight` — validates required binaries, files, and env vars.
+2. `cron` — starts cron and prepares environment propagation.
+3. `db_init` — creates tables and enables SQLite WAL mode.
+4. `nav_sync` — runs initial NAV sync.
+5. `map_generation` — regenerates ISIN→AMFI map from fresh data.
+6. `app_boot` — starts uvicorn (`UVICORN_WORKERS`, default `2`).
+
+If any phase fails, startup exits immediately with an actionable error message describing what to fix.
+
+### Startup Troubleshooting
+
+- Inspect recent backend logs:
+  ```bash
+  docker compose -f docker-compose.prod.yml logs backend --tail 200
+  ```
+- Confirm required env vars are present (`DATABASE_URL`, `CORS_ORIGINS`).
+- Verify image contents if preflight reports missing files/binaries.
+- Reduce startup concurrency (if resource constrained):
+  ```bash
+  export UVICORN_WORKERS=1
+  docker compose -f docker-compose.prod.yml up -d
+  ```
+
 The Fund Intelligence integration supports two request modes:
+
 
 - **Single mode** (default user flow): `GET /api/scheme/{amfi_code}/enrichment`
   - Uses the scheme's ISIN and validates it before calling DaaS.

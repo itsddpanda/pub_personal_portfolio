@@ -105,14 +105,24 @@ mode_docker() {
 
   setup_backend_env ".env"
 
-  info "Pulling latest images and starting services..."
+  info "Pulling configured images and starting services..."
   docker compose -f docker-compose.prod.yml pull
   docker compose -f docker-compose.prod.yml up -d
 
+  local frontend_url="http://localhost:3001"
+  info "Running post-start frontend check at ${frontend_url} ..."
+  if curl -fsS --max-time 10 "$frontend_url" >/dev/null; then
+    success "Frontend is reachable at ${frontend_url}"
+  else
+    warn "Frontend check failed at ${frontend_url}."
+    warn "Hints: run 'docker compose -f docker-compose.prod.yml ps' and 'docker compose -f docker-compose.prod.yml logs frontend --tail 100'."
+    warn "If running remotely, verify port 3001 firewall/security-group access and reverse-proxy rules."
+  fi
+
   echo ""
-  success "MFA is running!"
-  echo -e "  Frontend: ${GREEN}http://localhost:3001${NC}"
-  echo -e "  API docs: ${GREEN}http://localhost:8001/docs${NC}"
+  success "MFA production stack is running!"
+  echo -e "  Frontend: ${GREEN}${frontend_url}${NC}"
+  echo -e "  Note: backend API is internal-only in docker-compose.prod.yml unless you explicitly add a backend ports mapping."
 }
 
 # =============================================================================
