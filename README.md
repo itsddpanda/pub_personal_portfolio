@@ -1,86 +1,79 @@
 # Mutual Fund Analyzer (MFA)
 
-A personal portfolio analyzer for Indian mutual funds. Upload your CAMS/KARVY Consolidated Account Statement (CAS) PDF and get instant portfolio analytics — XIRR, current value, fund-wise breakdown, and more.
-
----
+A personal portfolio analyzer for Indian mutual funds. Upload your CAMS/KARVY Consolidated Account Statement (CAS) PDF and get portfolio analytics (XIRR, current value, fund-wise breakdown, and enrichment insights).
 
 ## ⚡ Quick Setup
-
-The easiest way to get started is via the setup script, which handles dependency checks, file creation, and service startup automatically:
 
 ```bash
 # One-liner (no repo clone needed)
 curl -fsSL https://raw.githubusercontent.com/itsddpanda/Private_fund_analyzer/PRODUCTION/setup.sh | bash -s -- docker
 
-# Or clone first and run interactively
-git clone https://github.com/itsddpanda/Private_fund_analyzer.git && cd Private_fund_analyzer
-chmod +x setup.sh && ./setup.sh
+# Or clone first
+# git clone https://github.com/itsddpanda/Private_fund_analyzer.git
+# cd Private_fund_analyzer
+# chmod +x setup.sh && ./setup.sh
 ```
 
-**Modes available:**
+### Setup Modes
 
-| Mode | Command | Description |
-|------|---------|-------------|
-| `docker` | `./setup.sh docker` | Pull pre-built images from GHCR *(recommended)* |
-| `local` | `./setup.sh local` | Build from source using Docker Compose |
-| `dev` | `./setup.sh dev` | Local development — Python + Node, no Docker |
+| Mode | Command | Behavior |
+|------|---------|----------|
+| `docker` | `./setup.sh docker` | Uses `docker-compose.prod.yml` and pulls pre-built images from GHCR. |
+| `local` | `./setup.sh local` | Uses `docker-compose.yml` and builds backend/frontend from local source. |
+| `dev` | `./setup.sh dev` | Runs backend + frontend directly on host without Docker. |
 
----
+## 🚢 Deployment Compose Behavior
 
-## 🐳 Docker Images
+### `docker-compose.yml` (local source compose)
 
-| Image | URL |
-|-------|-----|
-| Backend | `ghcr.io/itsddpanda/private_fund_analyzer-backend:latest` |
-| Frontend | `ghcr.io/itsddpanda/private_fund_analyzer-frontend:latest` |
+- Intended for local development and source-based validation.
+- Builds images from local `backend/` and `frontend/` directories.
+- Exposes backend directly on host (`localhost:8001`) and frontend on host (`localhost:3001`).
 
-The backend API is available at `http://localhost:8001/api`.  
-API docs (Swagger UI) at `http://localhost:8001/docs`.
+### `docker-compose.prod.yml` (production-style compose)
 
----
+- Intended for deployment using pre-built GHCR images.
+- **Does not expose backend to host**; backend is only reachable on the internal Docker network.
+- Frontend is the only host-exposed service and performs internal API rewrites/proxying to backend.
+- For production smoke checks, use frontend URL and API paths through frontend routing.
 
 ## 📦 Tech Stack
 
-| Layer     | Technology          |
-| --------- | ------------------- |
-| Backend   | FastAPI + SQLite    |
+| Layer     | Technology |
+| --------- | ---------- |
+| Backend   | FastAPI + SQLModel + SQLite |
 | Frontend  | Next.js 14 (App Router) |
-| Parsing   | casparser           |
-| Container | Docker Compose      |
-
----
+| Parsing   | casparser |
+| Container | Docker Compose |
 
 ## 🔑 Environment Variables
 
 ### Backend (`backend/.env`)
 
-| Variable        | Default                             | Description                          |
-| --------------- | ----------------------------------- | ------------------------------------ |
-| `DATABASE_URL`  | `sqlite:////data/mfa.db`            | SQLite database path (inside Docker volume) |
-| `CORS_ORIGINS`  | `http://localhost:3001,...`         | Comma-separated allowed origins      |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DATABASE_URL` | `sqlite:////data/mfa.db` | SQLite database path (inside Docker volume) |
+| `CORS_ORIGINS` | `http://localhost:3001,http://127.0.0.1:3001` | Comma-separated allowed origins |
+| `FUND_DAAS_API_KEY` | `sk_test_123` | API key for fund enrichment provider |
 
----
+## 🧭 Request Flow (Architecture)
 
-## 📁 Project Structure
-
+```text
+[Browser]
+   |
+   v
+[Next.js Frontend]
+   |  /api/* (rewrite/proxy)
+   v
+[FastAPI Backend]
+   |-- CAS parsing + transaction normalization
+   |-- NAV & scheme services
+   |-- Enrichment cache check
+   |      | cache hit -> return DB DTO
+   |      | cache miss/expired/force -> call DaaS -> parse -> persist -> return DTO
+   v
+[SQLite + local data files]
 ```
-mfa/
-├── backend/                 # FastAPI application
-│   ├── app/
-│   │   ├── api/             # Route handlers
-│   │   ├── services/        # Business logic
-│   │   ├── models/          # SQLModel ORM models
-│   │   └── db/              # Database engine setup
-│   ├── main.py              # App entrypoint
-│   └── requirements.txt
-├── frontend/                # Next.js application
-│   └── src/
-├── setup.sh                 # One-step setup script
-├── docker-compose.yml       # Build from source
-└── docker-compose.prod.yml  # Deploy from pre-built images
-```
-
----
 
 ## 🏥 Health Check
 
@@ -89,27 +82,12 @@ curl http://localhost:8001/api/health
 # {"status": "ok", "service": "mfa-backend"}
 ```
 
----
-
 ## ⚙️ Operational Notes (Fund Intelligence)
 
-The Fund Intelligence integration supports two request modes:
-
-- **Single mode** (default user flow): `GET /api/scheme/{amfi_code}/enrichment`
-  - Uses the scheme's ISIN and validates it before calling DaaS.
-  - Invalid ISIN values return a clear `422` response.
-- **Bulk prefetch mode** (internal warmup): `POST /api/scheme/enrichment/prefetch`
-  - Accepts a JSON payload with `isins`, `batch_size`, and `throttle_seconds`.
-  - Requests are sent as **comma-separated ISIN batches**.
-  - Batch size is capped at **50 ISINs per request**.
-  - Includes warmup throttling (`429` when too frequent/already running) and structured batch logs for observability.
-
-Example payload:
-
-```json
-{
-  "isins": ["INF200K01AB1", "INF090I01239"],
-  "batch_size": 50,
-  "throttle_seconds": 0.3
-}
-```
+- **Single mode**: `GET /api/scheme/{amfi_code}/enrichment`
+  - Validates scheme ISIN before calling DaaS.
+  - Returns `422` for invalid ISIN.
+- **Bulk prefetch mode**: `POST /api/scheme/enrichment/prefetch`
+  - Accepts `isins`, `batch_size`, and `throttle_seconds`.
+  - Uses comma-separated ISIN batches.
+  - Batch size max: 50.
