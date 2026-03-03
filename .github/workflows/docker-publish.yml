@@ -3,7 +3,7 @@ name: Build, Publish, and Release on Tag
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - '*'
 
 permissions:
   contents: write
@@ -11,7 +11,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  REPO: ${{ github.repository }}
+  REPO: itsddpanda/private_fund_analyzer
 
 jobs:
   docker:
