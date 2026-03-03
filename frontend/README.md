@@ -1,43 +1,56 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# MFA Frontend (Next.js)
 
-## Getting Started
+This is the UI for Mutual Fund Analyzer. It renders portfolio dashboards and calls backend APIs under `/api/*`.
 
-First, run the development server:
+## Prerequisites
+
+- Node.js 20+
+- npm 10+
+
+## Local Run
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App starts on `http://localhost:3001`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Build and Production Run
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
+## Environment and API Routing
 
-To learn more about Next.js, take a look at the following resources:
+The app uses `next.config.mjs` rewrites so frontend requests to `/api/*` are forwarded to backend.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Typical local backend URL:
+- `http://localhost:8001`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+If you need to debug rewrite behavior, check:
+1. Browser network tab (`/api/...` request path)
+2. Next.js server logs in terminal
+3. Backend logs to confirm matching route hits
 
-## Deploy on Vercel
+## Useful Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `npm run dev` — start dev server with hot reload.
+- `npm run build` — create production build.
+- `npm run start` — run production build.
+- `npm run lint` — run ESLint checks.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## Debug Tips
 
-## Backend contract note: scheme enrichment performance history
+- If API calls fail in UI but backend works directly, validate rewrite target and container networking.
+- In prod compose, backend is internal-only; test API via frontend URL, not direct host backend port.
+- Keep backend `CORS_ORIGINS` aligned with frontend origin when running services separately.
 
-`GET /api/scheme/{amfi_code}/enrichment` returns a `performance` object where the following fields are JSON-serialized strings sourced from the latest `fund_performance_history` record:
+## Backend Contract Note: Enrichment Performance History
+
+`GET /api/scheme/{amfi_code}/enrichment` returns `performance` fields below as JSON-serialized strings:
 
 - `quarterly_performance`
 - `best_periods`
@@ -45,4 +58,8 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/deploym
 - `sip_returns`
 - `cagr_cat_avg`
 
-Consumers should parse these with `JSON.parse(...)` before rendering.
+Parse them before rendering:
+
+```ts
+const quarterly = JSON.parse(performance.quarterly_performance ?? "[]");
+```
