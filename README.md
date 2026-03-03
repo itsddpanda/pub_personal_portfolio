@@ -88,3 +88,28 @@ mfa/
 curl http://localhost:8001/api/health
 # {"status": "ok", "service": "mfa-backend"}
 ```
+
+---
+
+## ⚙️ Operational Notes (Fund Intelligence)
+
+The Fund Intelligence integration supports two request modes:
+
+- **Single mode** (default user flow): `GET /api/scheme/{amfi_code}/enrichment`
+  - Uses the scheme's ISIN and validates it before calling DaaS.
+  - Invalid ISIN values return a clear `422` response.
+- **Bulk prefetch mode** (internal warmup): `POST /api/scheme/enrichment/prefetch`
+  - Accepts a JSON payload with `isins`, `batch_size`, and `throttle_seconds`.
+  - Requests are sent as **comma-separated ISIN batches**.
+  - Batch size is capped at **50 ISINs per request**.
+  - Includes warmup throttling (`429` when too frequent/already running) and structured batch logs for observability.
+
+Example payload:
+
+```json
+{
+  "isins": ["INF200K01AB1", "INF090I01239"],
+  "batch_size": 50,
+  "throttle_seconds": 0.3
+}
+```

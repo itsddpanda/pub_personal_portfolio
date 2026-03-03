@@ -1,9 +1,11 @@
 import os
 import json
 import logging
+import threading
+import time
 import requests
 from datetime import datetime, date as dt_date
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Sequence, List
 
 from app.models.models import (
     FundEnrichment,
@@ -17,10 +19,15 @@ from app.models.models import (
 )
 from sqlmodel import Session, select
 from app.services.validation_engine import run_validations
+from app.services.isin_validator import normalize_and_validate_isin, validate_isin_list
 
 logger = logging.getLogger(__name__)
 
 DAAS_BASE_URL = "https://money-calc-gateway.ddpanda.workers.dev"
+MAX_BULK_PREFETCH_SIZE = 50
+
+_prefetch_lock = threading.Lock()
+_last_prefetch_started_at = 0.0
 
 _isin_to_name_cache: Optional[Dict[str, str]] = None
 
@@ -100,52 +107,151 @@ class DaasAuthException(Exception):
     pass
 
 
+def _fetch_daas_path(path_value: str) -> Optional[Dict[str, Any]]:
+    """Fetch intelligence payload from the remote DaaS API by path value."""
+    api_key = os.getenv("FUND_DAAS_API_KEY", "sk_test_123")
+    if not api_key:
+        logger.error("FUND_DAAS_API_KEY environment variable is not set and no fallback available.")
+        raise DaasAuthException("API key not configured.")
+
+    url = f"{DAAS_BASE_URL}/api/v1/fund/pro/{path_value}"
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    response = requests.get(url, headers=headers, timeout=15)
+
+    if response.status_code == 200:
+        return response.json()
+
+    if response.status_code == 503:
+        retry_after = int(response.headers.get("Retry-After", 60))
+        logger.info(
+            "DaaS returned 503 Processing for %s. Retry in %ss.",
+            path_value,
+            retry_after,
+        )
+        raise DaasProcessingException(retry_after=retry_after)
+
+    if response.status_code in (401, 429):
+        logger.error("DaaS Auth/Quota Error for %s: %s", path_value, response.text)
+        raise DaasAuthException("Invalid API key or quota exceeded.")
+
+    if response.status_code == 404:
+        logger.warning("Path %s not found in DaaS provider.", path_value)
+        return None
+
+    logger.error(
+        "DaaS API Error (%s) for %s: %s",
+        response.status_code,
+        path_value,
+        response.text,
+    )
+    return None
+
+
 def fetch_fund_intelligence(isin: str) -> Optional[Dict[str, Any]]:
     """
     Fetches raw fund intelligence data from the remote DaaS API.
     Raises DaasProcessingException on 503 HTTP status.
     Raises DaasAuthException on 401/429 HTTP status.
     """
-    api_key = os.getenv("FUND_DAAS_API_KEY", "sk_test_123")
-    if not api_key:
-        logger.error("FUND_DAAS_API_KEY environment variable is not set and no fallback available.")
-        raise DaasAuthException("API key not configured.")
-
-    url = f"{DAAS_BASE_URL}/api/v1/fund/pro/{isin}"
-    headers = {"Authorization": f"Bearer {api_key}"}
+    normalized_isin = normalize_and_validate_isin(isin)
 
     try:
-        logger.info(f"Fetching DaaS intelligence for ISIN: {isin}")
-        response = requests.get(url, headers=headers, timeout=15)
-
-        if response.status_code == 200:
-            return response.json()
-
-        elif response.status_code == 503:
-            # The calculation was triggered in the background
-            retry_after = int(response.headers.get("Retry-After", 60))
-            logger.info(
-                f"DaaS returned 503 Processing for ISIN {isin}. Retry in {retry_after}s."
-            )
-            raise DaasProcessingException(retry_after=retry_after)
-
-        elif response.status_code in (401, 429):
-            logger.error(f"DaaS Auth/Quota Error for ISIN {isin}: {response.text}")
-            raise DaasAuthException("Invalid API key or quota exceeded.")
-
-        elif response.status_code == 404:
-            logger.warning(f"ISIN {isin} not found in DaaS provider.")
-            return None
-
-        else:
-            logger.error(
-                f"DaaS API Error ({response.status_code}) for ISIN {isin}: {response.text}"
-            )
-            return None
+        logger.info("Fetching DaaS intelligence for ISIN: %s", normalized_isin)
+        return _fetch_daas_path(normalized_isin)
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Network error fetching DaaS intelligence for {isin}: {e}")
+        logger.error("Network error fetching DaaS intelligence for %s: %s", normalized_isin, e)
         return None
+
+
+def _chunked(items: Sequence[str], size: int) -> List[List[str]]:
+    return [list(items[i : i + size]) for i in range(0, len(items), size)]
+
+
+def prefetch_fund_intelligence_batches(
+    isins: Sequence[str],
+    batch_size: int = MAX_BULK_PREFETCH_SIZE,
+    throttle_seconds: float = 0.3,
+    min_interval_seconds: float = 5.0,
+) -> Dict[str, Any]:
+    """Bulk prefetch helper for warmup jobs using comma-separated ISIN requests."""
+    global _last_prefetch_started_at
+    if batch_size <= 0:
+        raise ValueError("batch_size must be greater than 0")
+    if batch_size > MAX_BULK_PREFETCH_SIZE:
+        raise ValueError(f"batch_size cannot exceed {MAX_BULK_PREFETCH_SIZE}")
+
+    validated_isins = validate_isin_list(isins, max_items=MAX_BULK_PREFETCH_SIZE)
+
+    if not _prefetch_lock.acquire(blocking=False):
+        raise RuntimeError("Prefetch warmup is already running.")
+
+    started = time.monotonic()
+    elapsed = started - _last_prefetch_started_at
+    if _last_prefetch_started_at > 0 and elapsed < min_interval_seconds:
+        _prefetch_lock.release()
+        raise RuntimeError(
+            f"Prefetch warmup is throttled. Retry after {round(min_interval_seconds - elapsed, 2)} seconds."
+        )
+
+    _last_prefetch_started_at = started
+
+    try:
+        batches = _chunked(validated_isins, batch_size)
+        logger.info(
+            "Starting ISIN prefetch warmup: total_isins=%s, batches=%s, batch_size=%s, throttle_seconds=%s",
+            len(validated_isins),
+            len(batches),
+            batch_size,
+            throttle_seconds,
+        )
+
+        results = []
+        for idx, batch in enumerate(batches, start=1):
+            joined = ",".join(batch)
+            batch_start = time.monotonic()
+            status = "ok"
+            try:
+                payload = _fetch_daas_path(joined)
+            except DaasProcessingException:
+                status = "processing"
+                payload = None
+            except requests.exceptions.RequestException as exc:
+                logger.error("Network error during batch prefetch %s: %s", idx, exc)
+                status = "network_error"
+                payload = None
+
+            duration_ms = round((time.monotonic() - batch_start) * 1000, 2)
+            logger.info(
+                "Prefetch batch completed: batch=%s/%s, size=%s, status=%s, duration_ms=%s",
+                idx,
+                len(batches),
+                len(batch),
+                status,
+                duration_ms,
+            )
+            results.append(
+                {
+                    "batch": idx,
+                    "size": len(batch),
+                    "status": status,
+                    "duration_ms": duration_ms,
+                    "has_payload": payload is not None,
+                }
+            )
+
+            if idx < len(batches) and throttle_seconds > 0:
+                time.sleep(throttle_seconds)
+
+        return {
+            "mode": "bulk",
+            "total_isins": len(validated_isins),
+            "batch_size": batch_size,
+            "batches": results,
+        }
+    finally:
+        _prefetch_lock.release()
 
 
 def parse_enrichment_response(
