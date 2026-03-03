@@ -256,6 +256,13 @@ class FundPerformance(SQLModel, table=True):
     cagr_rank_5y: Optional[int] = None
     cagr_rank_10y: Optional[int] = None
 
+    # Performance-history payload snapshots (JSON text)
+    quarterly_performance: Optional[str] = None
+    best_periods: Optional[str] = None
+    worst_periods: Optional[str] = None
+    sip_returns: Optional[str] = None
+    cagr_cat_avg: Optional[str] = None
+
     # Snapshot date (NEW)
     recorded_at: Optional[dt_date] = None
 

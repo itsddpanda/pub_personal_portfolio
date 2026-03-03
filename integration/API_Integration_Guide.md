@@ -162,6 +162,8 @@ The fund exists in our database and your quota is valid. The requested quota is 
       "quarterly_performance": "array | null",
       "best_periods": "object | null",
       "worst_periods": "object | null",
+      "sip_returns": "object | null",
+      "cagr_cat_avg": "object | null (mirrors cagr_metrics.cagr_cat_avg)",
       "recorded_at": "YYYY-MM-DD | null"
     }
   ],
@@ -332,8 +334,16 @@ Below is a live data snapshot for the **HSBC Business Cycles Direct Growth** fun
           "5 Years": "126.75",
           "10 Years": "353.81"
         },
-        "cagr_rank_in_cat": { "1 Year": 68, "3 Years": 26, "5 Years": 18, "10 Years": 9 }
+        "cagr_rank_in_cat": { "1 Year": 68, "3 Years": 26, "5 Years": 18, "10 Years": 9 },
+        "cagr_cat_avg": { "1 Year": "13.11", "3 Years": "18.02", "5 Years": "14.73" }
       },
+      "quarterly_performance": [
+        { "period": "Q1", "return": "5.21" },
+        { "period": "Q2", "return": "-1.18" }
+      ],
+      "best_periods": { "1Y": { "from": "2025-03-01", "to": "2026-02-28", "return": "15.32" } },
+      "worst_periods": { "1Y": { "from": "2024-05-01", "to": "2025-04-30", "return": "-7.42" } },
+      "sip_returns": { "1Y": "11.2", "3Y": "14.9" },
       "risk_metrics": {
         "returns": { "1y": "15.32", "3y": "21.36", "5y": "17.79" },
         "risk_std_dev": { "1y": "22.73", "3y": "16.77", "5y": "15.58" },

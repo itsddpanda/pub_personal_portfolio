@@ -3,3 +3,8 @@ ALTER TABLE fundenrichment ADD COLUMN equity_alloc FLOAT;
 ALTER TABLE fundenrichment ADD COLUMN debt_alloc FLOAT;
 ALTER TABLE fundenrichment ADD COLUMN cash_alloc FLOAT;
 ALTER TABLE fundenrichment ADD COLUMN other_alloc FLOAT;
+ALTER TABLE fundperformance ADD COLUMN quarterly_performance TEXT;
+ALTER TABLE fundperformance ADD COLUMN best_periods TEXT;
+ALTER TABLE fundperformance ADD COLUMN worst_periods TEXT;
+ALTER TABLE fundperformance ADD COLUMN sip_returns TEXT;
+ALTER TABLE fundperformance ADD COLUMN cagr_cat_avg TEXT;

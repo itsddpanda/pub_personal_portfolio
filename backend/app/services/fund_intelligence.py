@@ -386,6 +386,32 @@ def parse_enrichment_response(
         cagr_vals = cagr_metrics.get("cagr", {})
         cagr_ranks = cagr_metrics.get("cagr_rank_in_cat", {})
 
+        enrichment.performance.quarterly_performance = (
+            json.dumps(latest_hist.get("quarterly_performance"))
+            if latest_hist.get("quarterly_performance") is not None
+            else None
+        )
+        enrichment.performance.best_periods = (
+            json.dumps(latest_hist.get("best_periods"))
+            if latest_hist.get("best_periods") is not None
+            else None
+        )
+        enrichment.performance.worst_periods = (
+            json.dumps(latest_hist.get("worst_periods"))
+            if latest_hist.get("worst_periods") is not None
+            else None
+        )
+        enrichment.performance.sip_returns = (
+            json.dumps(latest_hist.get("sip_returns"))
+            if latest_hist.get("sip_returns") is not None
+            else None
+        )
+        enrichment.performance.cagr_cat_avg = (
+            json.dumps(cagr_metrics.get("cagr_cat_avg"))
+            if cagr_metrics.get("cagr_cat_avg") is not None
+            else None
+        )
+
         enrichment.performance.cagr_1y = _safe_float(cagr_vals.get("1 Year"))
         enrichment.performance.cagr_3y = _safe_float(cagr_vals.get("3 Years"))
         enrichment.performance.cagr_5y = _safe_float(cagr_vals.get("5 Years"))

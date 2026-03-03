@@ -34,3 +34,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+
+## Backend contract note: scheme enrichment performance history
+
+`GET /api/scheme/{amfi_code}/enrichment` returns a `performance` object where the following fields are JSON-serialized strings sourced from the latest `fund_performance_history` record:
+
+- `quarterly_performance`
+- `best_periods`
+- `worst_periods`
+- `sip_returns`
+- `cagr_cat_avg`
+
+Consumers should parse these with `JSON.parse(...)` before rendering.
