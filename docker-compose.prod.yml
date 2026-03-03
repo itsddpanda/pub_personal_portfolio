@@ -1,8 +1,11 @@
 services:
   backend:
-    image: ghcr.io/itsddpanda/private_fund_analyzer-backend:latest
+    # Prefer immutable tags in production, e.g. BACKEND_IMAGE_TAG=v1.4.2
+    image: ghcr.io/itsddpanda/private_fund_analyzer-backend:${BACKEND_IMAGE_TAG:-latest}
     container_name: pfa-backend
-    # Port NOT exposed to host — frontend proxies API calls internally via Next.js rewrites
+    # Internal-only by default. Uncomment ports only when direct host API access is required.
+    # ports:
+    #   - "8001:8001"
     volumes:
       - back_data:/data
     env_file:
@@ -16,7 +19,8 @@ services:
       start_period: 15s
 
   frontend:
-    image: ghcr.io/itsddpanda/private_fund_analyzer-frontend:latest
+    # Prefer immutable tags in production, e.g. FRONTEND_IMAGE_TAG=v1.4.2
+    image: ghcr.io/itsddpanda/private_fund_analyzer-frontend:${FRONTEND_IMAGE_TAG:-latest}
     container_name: pfa-frontend
     ports:
       - "3001:3001"
