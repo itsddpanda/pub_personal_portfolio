@@ -22,7 +22,7 @@ echo "Running initial NAV sync..."
 /usr/local/bin/python /app/scripts/sync_amfi.py
 
 # Generate ISIN -> AMFI code map from the freshly downloaded NAVAll.txt
-echo "Generating ISIN map..."
+echo "Startup -> Generating ISIN map..."
 /usr/local/bin/python -c "from app.utils.master_data import generate_isin_map; generate_isin_map()"
 
 # Run the main uvicorn application

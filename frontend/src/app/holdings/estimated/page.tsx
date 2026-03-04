@@ -81,8 +81,7 @@ export default function EstimatedHoldingsPage() {
                     </p>
                     <p className="text-amber-700/90 dark:text-amber-400/80 text-sm mt-3 leading-relaxed">
                         <strong>Fix:</strong> Upload a <strong>Detailed CAS from inception</strong> (covering your entire investment history)
-                        from <a href="https://www.camsonline.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 decoration-amber-500/30 hover:decoration-amber-500 font-medium">mycams.com</a> or
-                        {' '}<a href="https://www.kfintech.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 decoration-amber-500/30 hover:decoration-amber-500 font-medium">kfintech.com</a>.
+                        from <a href="https://www.camsonline.com/Investors/Statements/Consolidated-Account-Statement" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 decoration-amber-500/30 hover:decoration-amber-500 font-medium">mycams.com</a>.
                         The system will automatically replace the opening balances with real transaction data.
                     </p>
                 </div>

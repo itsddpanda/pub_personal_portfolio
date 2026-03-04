@@ -14,8 +14,9 @@ from app.models.models import Scheme, NavHistory, SystemState
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=log_level,
+    format="%(asctime)s | %(name)s | %(levelname)-8s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger("sync_amfi")
@@ -57,26 +58,24 @@ def run_sync():
                 else os.path.join(os.path.dirname(__file__), "..", "data", "NAVAll.txt")
             )
 
-            # Check for recent successful execution
+            # Check for recent cached file using file mtime (more reliable than DB state)
             use_cache = False
-            last_run_state = session.get(SystemState, "nav_sync_last_run")
-            status_state = session.get(SystemState, "nav_sync_status")
-
-            if last_run_state and status_state and status_state.value == "IDLE":
+            if os.path.exists(amfi_file_path):
                 try:
-                    last_run_time = datetime.datetime.fromisoformat(
-                        last_run_state.value
+                    file_mtime = datetime.datetime.utcfromtimestamp(
+                        os.path.getmtime(amfi_file_path)
                     )
-                    time_since_last_run = datetime.datetime.utcnow() - last_run_time
-                    if time_since_last_run < datetime.timedelta(
-                        hours=4
-                    ) and os.path.exists(amfi_file_path):
+                    time_since_file = datetime.datetime.utcnow() - file_mtime
+                    logger.debug(
+                        f"Cache file age: {time_since_file.total_seconds() / 3600:.1f} hours"
+                    )
+                    if time_since_file < datetime.timedelta(hours=12):
                         logger.info(
-                            f"Skipping HTTP fetch. Last successful sync was only {time_since_last_run.total_seconds() / 3600:.1f} hours ago. Using cached payload."
+                            f"Skipping HTTP fetch. Cache file is only {time_since_file.total_seconds() / 3600:.1f} hours old. Using cached payload."
                         )
                         use_cache = True
                 except Exception as e:
-                    logger.warning(f"Failed to parse last run time: {e}")
+                    logger.warning(f"Failed to check cache file age: {e}")
 
             # Mark status as IN_PROGRESS
             update_status(session, "IN_PROGRESS")
@@ -92,7 +91,7 @@ def run_sync():
                     os.makedirs(os.path.dirname(amfi_file_path), exist_ok=True)
                     with open(amfi_file_path, "w") as f:
                         f.write(payload_text)
-                    logger.info(f"Successfully cached payload to {amfi_file_path}")
+                    logger.debug(f"Successfully cached payload to {amfi_file_path}")
                 except Exception as e:
                     logger.warning(f"Failed to cache NAV payload to disk: {e}")
             else:
@@ -101,7 +100,7 @@ def run_sync():
                     payload_text = f.read()
 
             lines = payload_text.splitlines()
-            logger.info(f"Started processing {len(lines)} lines of data")
+            logger.debug(f"Started processing {len(lines)} lines of data")
 
             # 2. Build a lookup map of AMFI code -> (NAV, Date)
             amfi_data = {}
@@ -125,7 +124,7 @@ def run_sync():
                         # Skip if NAV is "N.A." or date format is unexpected
                         pass
 
-            logger.info(f"Parsed {len(amfi_data)} valid scheme NAVs from AMFI")
+            logger.debug(f"Parsed {len(amfi_data)} valid scheme NAVs from AMFI")
 
             # 4. Update schemes in our local database
             schemes = session.exec(select(Scheme).where(Scheme.amfi_code != None)).all()

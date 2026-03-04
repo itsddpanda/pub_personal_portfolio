@@ -1,5 +1,5 @@
 mfa*
 cas*
 nav*
-NAV*
 *.py
+!isin_amfi_map.json

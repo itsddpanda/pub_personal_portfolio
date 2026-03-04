@@ -13,6 +13,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+COPY /data/NAVAll.txt /data/NAVAll.txt
 COPY start.sh /app
 
 # Setup cron job to run every 12 hours
