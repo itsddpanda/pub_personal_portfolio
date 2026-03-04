@@ -1,0 +1,30 @@
+name: Mirror to Public Repo
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout Private Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Use the generated token for checkout to ensure push permissions
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Push to Public Repo
+        run: |
+          # Use the token in the remote URL
+          git remote add public https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/itsddpanda/pub_personal_portfolio.git
+          git push public main --force

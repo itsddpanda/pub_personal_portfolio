@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-COMPOSE_FILE="docker-compose.yml"
+COMPOSE_FILE="docker-compose.test.yml"
 
 build_frontend() {
     echo "Building frontend..."
