@@ -48,4 +48,3 @@ mfa.db
 *.py
 rca_compare.py
 get_cas_schema.py
-*.txt
