@@ -1,138 +1,107 @@
-name: Build, Publish, and Release on Tag
+name: Create Release and Publish Docker Images
 
 on:
-  push:
-    tags:
-      - '*'
-
-permissions:
-  contents: write
-  packages: write
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
-  REPO: itsddpanda/private_fund_analyzer
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  docker:
-    name: Build and push backend/frontend images
+  build-and-push-image:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Install the cosign tool except on PR
+      # https://github.com/sigstore/cosign-installer
+      - name: Install cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3.5.0
         with:
-          fetch-depth: 0
+          cosign-release: 'v2.2.4'
 
+      # Set up BuildKit Docker container builder to be able to build
+      # multi-platform images and export cache
+      # https://github.com/docker/setup-buildx-action
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3.0.0
 
-      - name: Log into GHCR
-        uses: docker/login-action@v3
+      # Login against a Docker registry except on PR
+      # https://github.com/docker/login-action
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Resolve tags
-        id: tags
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
-          echo "version_tag=${TAG}" >> "$GITHUB_OUTPUT"
-
-          if [[ "$TAG" == *-* ]]; then
-            echo "publish_latest=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "publish_latest=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Extract Docker metadata for backend
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata for Backend
         id: meta-backend
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v5.0.0
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO }}-backend
-          tags: |
-            type=raw,value=${{ steps.tags.outputs.version_tag }}
-            type=raw,value=latest,enable=${{ steps.tags.outputs.publish_latest == 'true' }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
 
-      - name: Extract Docker metadata for frontend
+      - name: Extract Docker metadata for Frontend
         id: meta-frontend
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v5.0.0
         with:
-          images: ${{ env.REGISTRY }}/${{ env.REPO }}-frontend
-          tags: |
-            type=raw,value=${{ steps.tags.outputs.version_tag }}
-            type=raw,value=latest,enable=${{ steps.tags.outputs.publish_latest == 'true' }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
 
-      - name: Build and push backend image
-        id: push-backend
-        uses: docker/build-push-action@v6
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Backend image
+        id: build-and-push-backend
+        uses: docker/build-push-action@v5.0.0
         with:
           context: ./backend
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta-backend.outputs.tags }}
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
-      - name: Build and push frontend image
-        id: push-frontend
-        uses: docker/build-push-action@v6
+      - name: Build and push Frontend image
+        id: build-and-push-frontend
+        uses: docker/build-push-action@v5.0.0
         with:
           context: ./frontend
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta-frontend.outputs.tags }}
           labels: ${{ steps.meta-frontend.outputs.labels }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
 
-      - name: Prepare release notes body from changelog/tag metadata
-        id: release-notes
-        shell: bash
-        run: |
-          set -euo pipefail
-          TAG="${GITHUB_REF_NAME}"
+      # Sign the resulting Docker images
+      - name: Sign the published backend image
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.meta-backend.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push-backend.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
-          {
-            echo "# ${TAG}"
-            echo
-            echo "## Container Images"
-            echo
-            echo "- Backend: \`${{ env.REGISTRY }}/${{ env.REPO }}-backend:${TAG}\`"
-            if [[ "${{ steps.tags.outputs.publish_latest }}" == "true" ]]; then
-              echo "- Backend (rolling): \`${{ env.REGISTRY }}/${{ env.REPO }}-backend:latest\`"
-            fi
-            echo "- Frontend: \`${{ env.REGISTRY }}/${{ env.REPO }}-frontend:${TAG}\`"
-            if [[ "${{ steps.tags.outputs.publish_latest }}" == "true" ]]; then
-              echo "- Frontend (rolling): \`${{ env.REGISTRY }}/${{ env.REPO }}-frontend:latest\`"
-            fi
-            echo
-            if [[ -f CHANGELOG.md ]]; then
-              section=$(awk -v tag="$TAG" '
-                BEGIN {capture=0}
-                $0 ~ "^##[[:space:]]*\\[?" tag "\\]?" {capture=1; next}
-                capture && $0 ~ "^##[[:space:]]+" {exit}
-                capture {print}
-              ' CHANGELOG.md)
+      - name: Sign the published frontend image
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          TAGS: ${{ steps.meta-frontend.outputs.tags }}
+          DIGEST: ${{ steps.build-and-push-frontend.outputs.digest }}
+        run: echo "${TAGS}" | xargs -I {} cosign sign --yes {}@${DIGEST}
 
-              if [[ -n "$section" ]]; then
-                echo "## Changelog"
-                echo
-                echo "$section"
-                echo
-              fi
-            fi
-
-            echo "## Full Changelog"
-            echo
-            echo "See the auto-generated summary below for commits included in this release."
-          } > release-notes.md
-
-      - name: Create GitHub Release and upload compose asset
+      # Attach docker-compose.prod.yml to the release for easy deployment
+      - name: Upload docker-compose.prod.yml as release asset
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          body_path: release-notes.md
-          generate_release_notes: true
           files: docker-compose.prod.yml

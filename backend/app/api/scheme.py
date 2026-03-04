@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
-from pydantic import BaseModel, Field
 from sqlmodel import Session, select
 from app.db.engine import get_session
 from app.models.models import Scheme, Transaction, NavHistory, Folio, Portfolio
@@ -16,23 +15,14 @@ from datetime import date
 from app.models.models import FundEnrichment
 from app.services.fund_intelligence import (
     fetch_fund_intelligence,
-    prefetch_fund_intelligence_batches,
     parse_enrichment_response,
     DaasProcessingException,
     DaasAuthException,
-    MAX_BULK_PREFETCH_SIZE,
 )
-from app.services.isin_validator import normalize_and_validate_isin
 from app.services.interfaces.fund_intel import get_enrichment_for_scheme
 from app.services.cache_manager import should_purge
 
 router = APIRouter()
-
-
-class PrefetchRequest(BaseModel):
-    isins: List[str] = Field(default_factory=list)
-    batch_size: int = Field(default=MAX_BULK_PREFETCH_SIZE, ge=1, le=MAX_BULK_PREFETCH_SIZE)
-    throttle_seconds: float = Field(default=0.3, ge=0)
 
 
 @router.get("/{amfi_code}")
@@ -303,12 +293,7 @@ def get_scheme_enrichment(
     # 2. Not cached or expired. Fetch from DaaS API
     if not enrichment:
         try:
-            try:
-                valid_isin = normalize_and_validate_isin(scheme.isin or "")
-            except ValueError as exc:
-                raise HTTPException(status_code=422, detail=str(exc))
-
-            raw_data = fetch_fund_intelligence(valid_isin)
+            raw_data = fetch_fund_intelligence(scheme.isin)
             if not raw_data:
                 raise HTTPException(
                     status_code=404, detail="Intelligence data not found for this ISIN"
@@ -344,21 +329,3 @@ def get_scheme_enrichment(
         raise HTTPException(status_code=500, detail="Failed to retrieve enrichment DTO")
 
     return dto
-
-
-@router.post("/enrichment/prefetch")
-def trigger_enrichment_prefetch(payload: PrefetchRequest):
-    """Internal worker/API entrypoint to prefetch DaaS enrichment in bulk."""
-    try:
-        result = prefetch_fund_intelligence_batches(
-            payload.isins,
-            batch_size=payload.batch_size,
-            throttle_seconds=payload.throttle_seconds,
-        )
-        return {"status": "accepted", "result": result}
-    except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
-    except RuntimeError as exc:
-        raise HTTPException(status_code=429, detail=str(exc))
-    except DaasAuthException:
-        raise HTTPException(status_code=500, detail="Intelligence API configuration error.")
