@@ -147,6 +147,48 @@ def fetch_fund_intelligence(isin: str) -> Optional[Dict[str, Any]]:
         logger.error(f"Network error fetching DaaS intelligence for {isin}: {e}")
         return None
 
+def trigger_bulk_daas_prefetch(isins: list[str]) -> None:
+    """
+    Fire-and-forget background task to queue ISINs for bulk pre-fetching.
+    Requires ISINs to be exactly 12 characters. Matches the 202 Accepted flow.
+    """
+    if not isins:
+        return
+
+    # 1. Filter and clean the ISINs
+    valid_isins = [isin.strip() for isin in isins if isin and len(isin.strip()) == 12]
+    unique_isins = list(set(valid_isins))
+
+    if not unique_isins:
+        logger.info("No valid 12-character ISINs found for bulk prefetch.")
+        return
+
+    api_key = os.getenv("FUND_DAAS_API_KEY", "sk_test_123")
+    headers = {"Authorization": f"Bearer {api_key}"}
+
+    # 2. Chunk into batches of 50 (API Limit)
+    chunk_size = 50
+    chunks = [unique_isins[i:i + chunk_size] for i in range(0, len(unique_isins), chunk_size)]
+
+    logger.info(f"Triggering DaaS bulk pre-fetch for {len(unique_isins)} ISINs in {len(chunks)} chunks.")
+
+    for i, chunk in enumerate(chunks):
+        chunk_str = ",".join(chunk)
+        url = f"{DAAS_BASE_URL}/api/v1/fund/pro/{chunk_str}"
+        
+        try:
+            # We don't care about the response body, just firing the request.
+            # Timeout is somewhat relaxed since it's a background task, but we don't want to hang forever
+            res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code == 202:
+                logger.info(f"Successfully queued bulk chunk {i+1}/{len(chunks)} (202 Accepted).")
+            else:
+                 logger.warning(f"Bulk chunk {i+1} returned unexpected status {res.status_code}: {res.text}")
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error queuing bulk DaaS chunk {i+1}: {e}")
+            # Continue to next chunk instead of failing entirely
+            continue
+
 
 def parse_enrichment_response(
     scheme_id: int,

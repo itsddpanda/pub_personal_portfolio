@@ -46,7 +46,10 @@ export default function UploadPage() {
             const result = await uploadCAS(file, password, existingUserId);
 
             if (result.status === 'success') {
-                if (result.user_id) {
+                // Only auto-activate the user if they don't have a PIN set.
+                // If PIN is set, the user must authenticate via UserMenu after redirect.
+                const alreadyActive = localStorage.getItem('mfa_user_id') === result.user_id;
+                if (result.user_id && !result.is_pin_set) {
                     localStorage.setItem('mfa_user_id', result.user_id);
                 }
 
@@ -86,8 +89,15 @@ export default function UploadPage() {
                 // Show "Done!" animation before redirecting
                 setPhase('DONE');
                 await new Promise(resolve => setTimeout(resolve, 800));
-                // Force a full reload to the dashboard to update the Navbar state
-                window.location.href = '/dashboard';
+
+                if (result.is_pin_set && !alreadyActive) {
+                    // PIN-protected user: redirect to home so they can authenticate via UserMenu
+                    sessionStorage.setItem('upload_pending_pin_user', result.user || 'User');
+                    window.location.href = '/';
+                } else {
+                    // No PIN or already active: go straight to dashboard
+                    window.location.href = '/dashboard';
+                }
             } else if (result.status === 'warning' && result.code === 'PAN_MISMATCH') {
                 const proceed = window.confirm(`CAS belongs to new user (${result.detected_name}). Create & switch?`);
                 if (proceed) {

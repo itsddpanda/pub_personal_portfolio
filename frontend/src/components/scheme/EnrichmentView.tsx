@@ -587,15 +587,15 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                     );
                                 })()}
 
-                                {/* Sector Distribution */}
+                                {/* Sector Distribution Bar + Top Sectors Table */}
                                 {(data.sectors?.length > 0 || data.holdings?.some((h: any) => h.sector && h.weighting)) && (() => {
-                                    let topSectors: [string, number][] = [];
+                                    let allSectors: { name: string; weight: number; change_1m?: number }[] = [];
 
                                     if (data.sectors && data.sectors.length > 0) {
-                                        topSectors = data.sectors
+                                        allSectors = data.sectors
+                                            .filter((s: any) => s.weighting > 0)
                                             .sort((a: any, b: any) => (b.weighting || 0) - (a.weighting || 0))
-                                            .slice(0, 5)
-                                            .map((s: any) => [s.sector_name, s.weighting || 0]);
+                                            .map((s: any) => ({ name: s.sector_name, weight: s.weighting || 0, change_1m: s.change_1m }));
                                     } else {
                                         const sectorMap: Record<string, number> = {};
                                         data.holdings.forEach((h: any) => {
@@ -603,32 +603,69 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                                 sectorMap[h.sector] = (sectorMap[h.sector] || 0) + h.weighting;
                                             }
                                         });
-                                        topSectors = Object.entries(sectorMap)
+                                        allSectors = Object.entries(sectorMap)
                                             .sort(([, a], [, b]) => b - a)
-                                            .slice(0, 5);
+                                            .map(([name, weight]) => ({ name, weight }));
                                     }
 
-                                    const totalSectorWeight = topSectors.reduce((acc, [, weight]) => acc + weight, 0);
-                                    const scale = totalSectorWeight > 0 ? 100 / totalSectorWeight : 1;
-                                    const colors = ["bg-indigo-600", "bg-sky-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500"];
+                                    const totalWeight = allSectors.reduce((acc, s) => acc + s.weight, 0);
+                                    const scale = totalWeight > 0 ? 100 / totalWeight : 1;
+                                    const colors = ["bg-indigo-600", "bg-sky-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-violet-500", "bg-teal-500", "bg-orange-500"];
+                                    const dotColors = ["bg-indigo-600", "bg-sky-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500", "bg-violet-500", "bg-teal-500", "bg-orange-500"];
+                                    const topSectors = allSectors.slice(0, 5);
 
                                     return (
-                                        <div>
-                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Top Sectors</h4>
-                                            <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                                {topSectors.map(([sector, weight], idx) => (
-                                                    <div key={sector} style={{ width: `${(weight * scale)}%` }} className={colors[idx % colors.length]} title={`${sector}: ${weight.toFixed(2)}%`} />
-                                                ))}
+                                        <>
+                                            {/* Distribution Bar */}
+                                            <div>
+                                                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Sector Distribution</h4>
+                                                <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                                                    {allSectors.map((s, idx) => (
+                                                        <div key={s.name} style={{ width: `${(s.weight * scale)}%` }} className={colors[idx % colors.length]} title={`${s.name}: ${s.weight.toFixed(2)}%`} />
+                                                    ))}
+                                                </div>
+                                                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                                                    {allSectors.slice(0, 6).map((s, idx) => (
+                                                        <span key={s.name} className="flex items-center gap-1">
+                                                            <span className={`w-2 h-2 rounded-full ${dotColors[idx % dotColors.length]}`} />
+                                                            {s.name}: {s.weight.toFixed(1)}%
+                                                        </span>
+                                                    ))}
+                                                    {allSectors.length > 6 && (
+                                                        <span className="text-slate-400 dark:text-slate-500">+{allSectors.length - 6} more</span>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="flex flex-wrap gap-4 mt-2 text-[10px] text-slate-500 dark:text-slate-400 font-medium">
-                                                {topSectors.map(([sector, weight], idx) => (
-                                                    <span key={sector} className="flex items-center gap-1">
-                                                        <span className={`w-2 h-2 rounded-full ${colors[idx % colors.length]}`} />
-                                                        {sector}: {weight.toFixed(2)}%
-                                                    </span>
-                                                ))}
+
+                                            {/* Top Sectors Table */}
+                                            <div className="mt-4">
+                                                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Top Sectors</h4>
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left text-sm">
+                                                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                                            {topSectors.map((s, idx) => (
+                                                                <tr key={s.name} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                                                                    <td className="py-2 text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                                                                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColors[idx % dotColors.length]}`} />
+                                                                        <span className="truncate max-w-[180px]">{s.name}</span>
+                                                                    </td>
+                                                                    <td className="py-2 text-right font-mono font-medium text-slate-900 dark:text-slate-200 w-[70px]">
+                                                                        {s.weight.toFixed(2)}%
+                                                                    </td>
+                                                                    {s.change_1m != null && (
+                                                                        <td className="py-2 text-right font-mono text-xs w-[60px]">
+                                                                            <span className={s.change_1m > 0 ? "text-emerald-500" : s.change_1m < 0 ? "text-rose-500" : "text-slate-400"}>
+                                                                                {s.change_1m > 0 ? '+' : ''}{s.change_1m.toFixed(2)}%
+                                                                            </span>
+                                                                        </td>
+                                                                    )}
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
                                             </div>
-                                        </div>
+                                        </>
                                     );
                                 })()}
                             </div>

@@ -7,6 +7,7 @@ from app.models.models import (
     FundPerformance,
     FundRiskMetrics,
     FundHolding,
+    FundSector,
     FundPeer,
     FundManager,
 )
@@ -61,6 +62,13 @@ class HoldingDTO(BaseModel):
     market_value: Optional[float] = None
     change_1m: Optional[float] = None
     holdings_history: Optional[str] = None  # JSON text
+
+
+class SectorDTO(BaseModel):
+    sector_name: Optional[str] = None
+    weighting: Optional[float] = None
+    market_value: Optional[float] = None
+    change_1m: Optional[float] = None
 
 
 class PeerDTO(BaseModel):
@@ -178,6 +186,7 @@ class EnrichmentDTO(BaseModel):
     performance: Optional[PerformanceDTO] = None
     risk_metrics: Optional[RiskMetricsDTO] = None
     holdings: List[HoldingDTO] = []
+    sectors: List[SectorDTO] = []
     peers: List[PeerDTO] = []
     managers: List[ManagerDTO] = []
 
@@ -205,6 +214,9 @@ def get_enrichment_for_scheme(
 
     dto.holdings = [
         HoldingDTO.model_validate(h, from_attributes=True) for h in enrichment.holdings
+    ]
+    dto.sectors = [
+        SectorDTO.model_validate(s, from_attributes=True) for s in enrichment.sectors
     ]
     dto.peers = [
         PeerDTO.model_validate(p, from_attributes=True) for p in enrichment.peers
