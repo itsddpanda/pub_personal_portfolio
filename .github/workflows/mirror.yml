@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   mirror:
@@ -20,11 +21,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Use the generated token for checkout to ensure push permissions
-          token: ${{ steps.generate_token.outputs.token }}
+          # CRITICAL: This prevents the local token from overriding your push token
+          persist-credentials: false 
 
       - name: Push to Public Repo
+        env:
+          # Storing the token in an env variable for cleaner use
+          APP_TOKEN: ${{ steps.generate_token.outputs.token }}
         run: |
-          # Use the token in the remote URL
-          git remote add public https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/itsddpanda/pub_personal_portfolio.git
+          # Use the token explicitly in the URL
+          git remote add public "https://x-access-token:${APP_TOKEN}@github.com/itsddpanda/pub_personal_portfolio.git"
+          
+          # Force push to the public repo
           git push public main --force
