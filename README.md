@@ -41,7 +41,7 @@ The easiest way to get started is to clone this repository and spin it up using 
 
 ```bash
 # Clone the repository
-git clone <repository-url> && cd <repository-name>
+git clone https://github.com/itsddpanda/Private_fund_analyzer.git && cd Private_fund_analyzer
 
 # Build and start the services in the background
 docker compose up -d --build
@@ -58,8 +58,8 @@ docker compose up -d --build
 
 | Image | URL |
 |-------|-----|
-| Backend | `ghcr.io/<github-username>/<repo-name>-backend:latest` |
-| Frontend | `ghcr.io/<github-username>/<repo-name>-frontend:latest` |
+| Backend | `ghcr.io/itsddpanda/private_fund_analyzer-backend:latest` |
+| Frontend | `ghcr.io/itsddpanda/private_fund_analyzer-frontend:latest` |
 
 The backend API is available at `http://localhost:8001/api`.  
 API docs (Swagger UI) at `http://localhost:8001/docs`.
