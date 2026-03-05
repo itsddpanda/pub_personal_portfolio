@@ -1,9 +1,6 @@
 name: Mirror to Public Repo
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
