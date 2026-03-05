@@ -14,7 +14,7 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: pub_personal_portfolio
+          repositories: ${{ secrets.PUBLIC_REPO_NAME }}
 
       - name: Checkout Private Repo
         uses: actions/checkout@v4
@@ -25,11 +25,11 @@ jobs:
 
       - name: Push to Public Repo
         env:
-          # Storing the token in an env variable for cleaner use
           APP_TOKEN: ${{ steps.generate_token.outputs.token }}
+          PUBLIC_REPO: ${{ secrets.PUBLIC_REPO_NAME }}
         run: |
           # Use the token explicitly in the URL
-          git remote add public "https://x-access-token:${APP_TOKEN}@github.com/itsddpanda/pub_personal_portfolio.git"
+          git remote add public "https://x-access-token:${APP_TOKEN}@github.com/itsddpanda/${PUBLIC_REPO}.git"
           
           # Force push to the public repo
           git push public main --force
