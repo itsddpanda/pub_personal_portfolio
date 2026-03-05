@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch: # Allows you to test manually from the Actions tab
 
 jobs:
   mirror:
@@ -16,18 +16,20 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          # Explicitly list the public repo name (format: owner/repo)
-          repositories: "pub_personal_portfolio"
+          # No 'repositories' line needed now that 'All repositories' is enabled
 
       - name: Checkout Private Repo
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # Use the generated token for checkout to ensure push permissions
           token: ${{ steps.generate_token.outputs.token }}
 
       - name: Push to Public Repo
         run: |
-          # Use the token in the remote URL
-          git remote add public https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/itsddpanda/pub_personal_portfolio.git
+          # Use your exact public repo name here
+          PUBLIC_URL="https://x-access-token:${{ steps.generate_token.outputs.token }}@github.com/itsddpanda/pub_personal_portfolio.git"
+          
+          git remote add public "$PUBLIC_URL" || git remote set-url public "$PUBLIC_URL"
+          
+          # Force push the main branch
           git push public main --force
