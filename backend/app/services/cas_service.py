@@ -181,6 +181,8 @@ def process_cas_data(
     # --- DEBUG DUMP END ---
 
     # 6. Process Folios & Schemes
+    discovered_isins = set()  # Collect ISINs for bulk enrichment prefetch
+
     for folio_data in folios:
         folio_num = folio_data.get("folio")
 
@@ -216,6 +218,9 @@ def process_cas_data(
                         f"Warning: Skipping scheme '{scheme_name_raw}' - ISIN not found."
                     )
                     continue
+
+            if isin and len(isin) == 12:
+                discovered_isins.add(isin)
 
             # Requirement 1: Strip ISIN suffix if present for display/storage
             scheme_name = re.sub(
@@ -521,4 +526,6 @@ def process_cas_data(
         "new_transactions": new_txns_count,
         "skipped_transactions": skipped_txns_count,
         "reconciled_opening_balances": reconciled_count,
+        "isins": list(discovered_isins),
+        "is_pin_set": user.pin_hash is not None,
     }

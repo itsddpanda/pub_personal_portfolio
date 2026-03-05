@@ -3,12 +3,21 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { APP_VERSION } from '@/lib/config';
 
 export default function Home() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [usersExist, setUsersExist] = useState(false);
+  const [pendingPinUser, setPendingPinUser] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if redirected here from CAS upload due to PIN lock
+    const pendingUser = sessionStorage.getItem('upload_pending_pin_user');
+    if (pendingUser) {
+      setPendingPinUser(pendingUser);
+      sessionStorage.removeItem('upload_pending_pin_user');
+    }
+
     // Check if user is logged in locally
     const userId = localStorage.getItem("mfa_user_id");
 
@@ -38,7 +47,7 @@ export default function Home() {
       <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex mb-16">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-slate-200 dark:border-white/10 bg-white/90 dark:bg-slate-900/50 pb-6 pt-8 backdrop-blur-xl lg:static lg:w-auto lg:rounded-2xl lg:border lg:bg-slate-100/50 dark:lg:bg-slate-800/50 lg:p-4 text-slate-800 dark:text-slate-300 shadow-sm dark:shadow-none">
           Mutual Fund Analyzer &nbsp;
-          <code className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded">v0.9.78</code>
+          <code className="font-mono font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded">{APP_VERSION}</code>
         </p>
       </div>
 
@@ -49,6 +58,19 @@ export default function Home() {
       </div>
 
       <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-2 lg:text-left gap-8">
+        {pendingPinUser && (
+          <div className="lg:col-span-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-4 flex items-start gap-3 shadow-lg animate-in fade-in">
+            <span className="text-amber-500 text-xl flex-shrink-0">🔒</span>
+            <div className="flex-1">
+              <p className="text-amber-700 dark:text-amber-300 text-sm font-medium">
+                CAS uploaded successfully for <strong>{pendingPinUser}</strong>. This user has a PIN lock enabled.
+              </p>
+              <p className="text-amber-600 dark:text-amber-400/80 text-sm mt-1">
+                Use the <strong>Login</strong> menu at the top right to authenticate with your PIN and access the dashboard.
+              </p>
+            </div>
+          </div>
+        )}
         <Card title="Upload CAS">
           <p className="mb-6 text-slate-600 dark:text-slate-400 leading-relaxed max-w-xs mx-auto lg:mx-0">
             Parse your CAMS/KFintech CAS PDF locally. No data leaves your device.

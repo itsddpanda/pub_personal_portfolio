@@ -89,6 +89,12 @@ async def upload_cas(
         if result.get("status") == "success":
             background_tasks.add_task(trigger_background_sync)
             background_tasks.add_task(backfill_all_schemes)
+            
+            # Fire-and-forget DaaS bulk pre-fetch for ISINs found in the CAS
+            isins_to_prefetch = result.get("isins", [])
+            if isins_to_prefetch:
+                from app.services.fund_intelligence import trigger_bulk_daas_prefetch
+                background_tasks.add_task(trigger_bulk_daas_prefetch, isins_to_prefetch)
 
         return result
 
