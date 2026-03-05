@@ -28,7 +28,7 @@ out/
 data/_*
 data/cas*
 data/nav_*
-
+integration/
 
 !data/.gitkeep
 *.zip
@@ -46,5 +46,3 @@ tmp/
 mfa.db
 .agent/
 *.py
-rca_compare.py
-get_cas_schema.py

@@ -1,6 +1,6 @@
 services:
   backend:
-    image: ghcr.io/itsddpanda/private_fund_analyzer-backend:latest
+    image: ghcr.io/itsddpanda/a-backend:latest
     container_name: pfa-backend
     # Port NOT exposed to host — frontend proxies API calls internally via Next.js rewrites
     volumes:
@@ -16,7 +16,7 @@ services:
       start_period: 15s
 
   frontend:
-    image: ghcr.io/itsddpanda/private_fund_analyzer-frontend:latest
+    image: ghcr.io/itsddpanda/r-frontend:latest
     container_name: pfa-frontend
     ports:
       - "3001:3001"
@@ -27,4 +27,4 @@ services:
 
 volumes:
   back_data:
-    name: pfa-back-data
+    name: pfa-data

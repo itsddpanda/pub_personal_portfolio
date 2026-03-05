@@ -11,6 +11,8 @@ build_frontend() {
 
 while true; do
     echo "============================================="
+    echo " USING COMPOSE File" $COMPOSE_FILE
+    echo "============================================="
     echo " Docker Management for MFA (Test Environment) "
     echo "============================================="
     echo "1. Docker down (without data)"
