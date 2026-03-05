@@ -172,10 +172,14 @@ jobs:
           REPO_LOWER=$(echo "$REPO_NAME" | tr '[:upper:]' '[:lower:]')
           GH_USER_LOWER=$(echo "$GH_USERNAME" | tr '[:upper:]' '[:lower:]')
           
-          sed -i "s|<repository-url>|$REPO_URL.git|g" README.md
-          sed -i "s|<repository-name>|$REPO_NAME|g" README.md
-          sed -i "s|<github-username>|$GH_USER_LOWER|g" README.md
-          sed -i "s|<repo-name>|$REPO_LOWER|g" README.md
+          # Replace the git clone instruction under the exact header
+          sed -i -e '/# Clone the repository/{n;s|git clone .*|git clone '"$REPO_URL"'\.git \&\& cd '"$REPO_NAME"'|;}' README.md
+          
+          # Replace the backend URL in the Docker Images table
+          sed -i -e 's@| Backend | `ghcr.io/.*-backend:latest` |@| Backend | `ghcr.io/'"$GH_USER_LOWER"'/'"$REPO_LOWER"'-backend:latest` |@g' README.md
+          
+          # Replace the frontend URL in the Docker Images table
+          sed -i -e 's@| Frontend | `ghcr.io/.*-frontend:latest` |@| Frontend | `ghcr.io/'"$GH_USER_LOWER"'/'"$REPO_LOWER"'-frontend:latest` |@g' README.md
           
           # Only commit if there are changes
           if [[ -n $(git status -s README.md) ]]; then
