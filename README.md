@@ -102,7 +102,6 @@ mfa/
 ├── frontend/                # Next.js application
 │   └── src/
 ├── assets/                  # Images for README and documentation
-├── docs/                    # Design specs, PRDs, and architecture docs
 ├── setup.sh                 # One-step setup script
 ├── docker-compose.yml       # Build from source
 └── docker-compose.prod.yml  # Deploy from pre-built images
