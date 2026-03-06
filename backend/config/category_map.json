@@ -1,0 +1,52 @@
+{
+    "Equity": {
+        "Large Cap Fund": "Equity: Large Cap",
+        "Bluechip": "Equity: Large Cap",
+        "Mid Cap Fund": "Equity: Mid Cap",
+        "Small Cap Fund": "Equity: Small Cap",
+        "Large & Mid Cap Fund": "Equity: Large & Mid Cap",
+        "Multi Cap Fund": "Equity: Multi Cap",
+        "Flexi Cap Fund": "Equity: Flexi Cap",
+        "Dividend Yield Fund": "Equity: Dividend Yield",
+        "Value Fund": "Equity: Value/Contra",
+        "Contra Fund": "Equity: Value/Contra",
+        "Focused Fund": "Equity: Focused",
+        "Sectoral / Thematic": "Equity: Sectoral/Thematic",
+        "ELSS": "Equity: ELSS"
+    },
+    "Debt": {
+        "Overnight Fund": "Debt: Overnight",
+        "Liquid Fund": "Debt: Liquid",
+        "Ultra Short Duration Fund": "Debt: Ultra Short",
+        "Low Duration Fund": "Debt: Low Duration",
+        "Money Market Fund": "Debt: Money Market",
+        "Short Duration Fund": "Debt: Short Duration",
+        "Medium Duration Fund": "Debt: Medium Duration",
+        "Medium to Long Duration Fund": "Debt: Medium to Long",
+        "Long Duration Fund": "Debt: Long Duration",
+        "Dynamic Bond Fund": "Debt: Dynamic Bond",
+        "Corporate Bond Fund": "Debt: Corporate Bond",
+        "Credit Risk Fund": "Debt: Credit Risk",
+        "Banking and PSU Fund": "Debt: Banking & PSU",
+        "Gilt Fund": "Debt: Gilt",
+        "Gilt Fund with 10 year constant duration": "Debt: Gilt 10Y",
+        "Floater Fund": "Debt: Floater"
+    },
+    "Hybrid": {
+        "Conservative Hybrid Fund": "Hybrid: Conservative",
+        "Balanced Hybrid Fund": "Hybrid: Balanced/Aggressive",
+        "Aggressive Hybrid Fund": "Hybrid: Balanced/Aggressive",
+        "Dynamic Asset Allocation": "Hybrid: BAF",
+        "Balanced Advantage Fund": "Hybrid: BAF",
+        "Multi Asset Allocation Fund": "Hybrid: Multi Asset",
+        "Arbitrage Fund": "Hybrid: Arbitrage",
+        "Equity Savings Fund": "Hybrid: Equity Savings"
+    },
+    "Solution & Other": {
+        "Retirement Fund": "Solution: Retirement",
+        "Children's Fund": "Solution: Children",
+        "Index Funds": "Other: Index/ETF",
+        "ETF": "Other: Index/ETF",
+        "Fund of Funds": "Other: FoF"
+    }
+}

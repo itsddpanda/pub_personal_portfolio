@@ -176,13 +176,24 @@ def get_scheme_details(
         except Exception:
             xirr_status = "ERROR"
 
+    # 4.5. Fetch FundEnrichment for metadata
+    enrichment = session.exec(
+        select(FundEnrichment).where(FundEnrichment.scheme_id == scheme.id)
+    ).first()
+
     return {
         "scheme": {
             "name": scheme.name,
             "amfi_code": scheme.amfi_code,
             "isin": scheme.isin,
             "fund_house": scheme.fund_house,
-            "category": scheme.scheme_category,
+            "category": (
+                enrichment.category if enrichment else scheme.scheme_category
+            ),
+            "sub_category": enrichment.sub_category if enrichment else None,
+            "plan_name": enrichment.plan_name if enrichment else None,
+            "option_name": enrichment.option_name if enrichment else None,
+            "is_enriched": enrichment is not None,
             "type": scheme.scheme_type,
             "latest_nav": scheme.latest_nav,
             "latest_nav_date": (
@@ -268,7 +279,10 @@ def trigger_scheme_backfill(amfi_code: str, session: Session = Depends(get_sessi
 
 @router.get("/{amfi_code}/enrichment")
 def get_scheme_enrichment(
-    amfi_code: str, force: bool = False, session: Session = Depends(get_session)
+    amfi_code: str, 
+    force: bool = False, 
+    x_user_id: str | None = Header(None, alias="X-User-Id"),
+    session: Session = Depends(get_session)
 ):
     """
     Fetches the Fund Intelligence extended data.
@@ -327,5 +341,31 @@ def get_scheme_enrichment(
     dto = get_enrichment_for_scheme(session, scheme.id)
     if not dto:
         raise HTTPException(status_code=500, detail="Failed to retrieve enrichment DTO")
+
+    # 4. Apply personalized thresholds logic on the fly
+    from app.services.fund_intelligence import generate_custom_highlights
+    from app.services.threshold_resolver import resolve_thresholds
+    from app.models.models import UserHighlightPrefs
+    import json
+
+    user_prefs = None
+    if x_user_id:
+        try:
+            user_uuid = UUID(x_user_id)
+            user_prefs = session.exec(
+                select(UserHighlightPrefs).where(UserHighlightPrefs.user_id == user_uuid)
+            ).first()
+        except ValueError:
+            pass
+
+    resolved_thresholds = resolve_thresholds(
+        category=dto.category, 
+        sub_category=dto.sub_category, 
+        user_prefs=user_prefs
+    )
+
+    # Re-generate the custom highlights with context
+    personalized_highlights = generate_custom_highlights(dto, thresholds=resolved_thresholds)
+    dto.kbyi = json.dumps(personalized_highlights)
 
     return dto

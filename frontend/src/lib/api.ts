@@ -71,6 +71,7 @@ export async function getSchemeDetails(amfiCode: string, xUserId: string) {
         headers: {
             'x-user-id': xUserId,
         },
+        cache: 'no-store',
     });
 
     if (!res.ok) {

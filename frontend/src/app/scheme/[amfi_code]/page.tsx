@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter, useParams } from 'next/navigation';
 import { getSchemeDetails, getSchemeHistory } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
@@ -18,6 +19,10 @@ interface SchemeMeta {
     isin: string;
     fund_house: string;
     category: string;
+    sub_category?: string;
+    plan_name?: string;
+    option_name?: string;
+    is_enriched?: boolean;
     type: string;
     latest_nav: number;
     latest_nav_date: string;
@@ -58,6 +63,7 @@ export default function SchemeDetailsPage() {
     const [loading, setLoading] = useState(true);
     const [historyLoading, setHistoryLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [refreshTick, setRefreshTick] = useState(0);
 
     useEffect(() => {
         const userId = localStorage.getItem('mfa_user_id');
@@ -97,7 +103,7 @@ export default function SchemeDetailsPage() {
 
         fetchDetails();
         fetchHistory();
-    }, [amfiCode, router]);
+    }, [amfiCode, router, refreshTick]);
 
     const handleRefreshHistory = async () => {
         setHistoryLoading(true);
@@ -162,13 +168,39 @@ export default function SchemeDetailsPage() {
 
                 <div className="relative z-10 flex flex-col md:flex-row md:justify-between md:items-end gap-6">
                     <div className="max-w-2xl">
-                        <div className="flex items-center gap-3 mb-4">
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
                             <span className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-[10px] uppercase font-bold tracking-widest rounded-full border border-slate-200 dark:border-white/5">
                                 {scheme.fund_house || "Unknown AMC"}
                             </span>
-                            <span className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] uppercase font-bold tracking-widest rounded-full border border-indigo-200 dark:border-indigo-500/20">
-                                {scheme.category || "Equity"}
-                            </span>
+                            {scheme.is_enriched ? (
+                                <>
+                                    {scheme.category && (
+                                        <Link href={`/drilldown/peers/${amfiCode}`} className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] uppercase font-bold tracking-widest rounded-full border border-indigo-200 dark:border-indigo-500/20 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors">
+                                            {scheme.category}
+                                        </Link>
+                                    )}
+                                    {scheme.sub_category && (
+                                        <Link href={`/drilldown/peers/${amfiCode}`} className="px-2.5 py-1 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 text-[10px] uppercase font-bold tracking-widest rounded-full border border-cyan-200 dark:border-cyan-500/20 hover:bg-cyan-100 dark:hover:bg-cyan-500/20 transition-colors">
+                                            {scheme.sub_category}
+                                        </Link>
+                                    )}
+                                    {scheme.plan_name && !['direct', 'growth'].includes(scheme.plan_name.toLowerCase()) && (
+                                        <span className="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] uppercase font-bold tracking-widest rounded-full border border-emerald-200 dark:border-emerald-500/20">
+                                            {scheme.plan_name}
+                                        </span>
+                                    )}
+                                    {scheme.option_name && !['direct', 'growth'].includes(scheme.option_name.toLowerCase()) && (
+                                        <span className="px-2.5 py-1 bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[10px] uppercase font-bold tracking-widest rounded-full border border-amber-200 dark:border-amber-500/20">
+                                            {scheme.option_name}
+                                        </span>
+                                    )}
+                                </>
+                            ) : (
+                                <span className="px-2.5 py-1 bg-slate-100/50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-widest rounded-full border border-slate-200/50 dark:border-slate-800 animate-pulse flex items-center gap-1.5 shadow-sm">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 dark:bg-indigo-500 animate-ping"></span>
+                                    Analyzing Category...
+                                </span>
+                            )}
                         </div>
                         <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight mb-2 text-balance lg:max-w-[90%]">
                             {scheme.name}
@@ -255,7 +287,7 @@ export default function SchemeDetailsPage() {
             </div>
 
             {/* DaaS Advanced Intelligence View */}
-            <EnrichmentView amfiCode={amfiCode} />
+            <EnrichmentView amfiCode={amfiCode} onLoaded={() => setRefreshTick(t => t + 1)} />
 
             {/* Minimalist Ledger Table */}
             <h2 className="text-lg font-bold text-slate-900 dark:text-slate-200 mb-4 px-1 drop-shadow-sm">Transaction Ledger</h2>

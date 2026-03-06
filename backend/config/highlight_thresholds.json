@@ -1,0 +1,38 @@
+{
+    "global": {
+        "expense_ratio_low": 0.5,
+        "expense_ratio_high": 2.0,
+        "concentration_top5_high": 35.0,
+        "beta_high": 1.1,
+        "beta_low": 0.9,
+        "ytm_attractive": 7.5,
+        "pe_discount_pct": 0.8,
+        "cagr_outperform_min": 2.0,
+        "cagr_underperform_min": -2.0
+    },
+    "category_overrides": {
+        "Equity: Large Cap": {
+            "expense_ratio_low": 0.8,
+            "concentration_top5_high": 45.0,
+            "beta_high": 1.05,
+            "beta_low": 0.95
+        },
+        "Equity: Small Cap": {
+            "expense_ratio_low": 1.0,
+            "beta_high": 1.25,
+            "beta_low": 0.85,
+            "concentration_top5_high": 30.0
+        },
+        "Other: Index/ETF": {
+            "expense_ratio_low": 0.2,
+            "expense_ratio_high": 0.5,
+            "cagr_outperform_min": 0.5,
+            "cagr_underperform_min": -0.5,
+            "beta_high": 1.05,
+            "beta_low": 0.95
+        },
+        "Debt: Short Duration": {
+            "ytm_attractive": 6.5
+        }
+    }
+}

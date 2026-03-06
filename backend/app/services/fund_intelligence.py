@@ -3,7 +3,7 @@ import json
 import logging
 import requests
 from datetime import datetime, date as dt_date
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from app.models.models import (
     FundEnrichment,
@@ -190,6 +190,194 @@ def trigger_bulk_daas_prefetch(isins: list[str]) -> None:
             continue
 
 
+def generate_custom_highlights(enrichment: FundEnrichment, thresholds: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """
+    Generates semantic 'Key Highlights' based on the fund's actual metrics.
+    Replaces static/poor-quality DaaS kbyi intelligence.
+    """
+    if thresholds is None:
+        from app.services.threshold_resolver import resolve_thresholds
+        thresholds = resolve_thresholds(enrichment.category, enrichment.sub_category)
+
+    highlights = []
+
+    # Safe gets with fallbacks from thresholds dictionary
+    t_rank_top = thresholds.get("cagr_rank_top", 5)
+    t_outperform_min = thresholds.get("cagr_outperform_min", 2.0)
+    t_underperform_min = thresholds.get("cagr_underperform_min", -2.0)
+    t_expense_low = thresholds.get("expense_ratio_low", 0.5)
+    t_expense_high = thresholds.get("expense_ratio_high", 2.0)
+    t_conc_high = thresholds.get("concentration_top5_high", 35.0)
+    t_beta_high = thresholds.get("beta_high", 1.2)
+    t_beta_low = thresholds.get("beta_low", 0.8)
+    t_ytm_attr = thresholds.get("ytm_attractive", 7.5)
+    t_pe_disc = thresholds.get("pe_discount_pct", 0.8)
+
+    # 1. Performance Insights
+    perf = enrichment.performance
+    risk = enrichment.risk_metrics
+    
+    is_consistent_compounder = False
+    is_high_return = False
+    
+    if perf and risk:
+        # Check Multi-period consistency 
+        if (perf.cagr_1y and risk.cat_avg_1y and perf.cagr_1y > risk.cat_avg_1y) and \
+           (perf.cagr_3y and risk.cat_avg_3y and perf.cagr_3y > risk.cat_avg_3y) and \
+           (perf.cagr_5y and risk.cat_avg_5y and perf.cagr_5y > risk.cat_avg_5y):
+           
+            is_consistent_compounder = True
+            highlights.append({
+                "Performance": {
+                    "text": "Consistent Compounder: Outperformed category average across 1-year, 3-year, and 5-year periods.",
+                    "type": "positive"
+                }
+            })
+
+        # Check 3Y Performance vs Rank (if not already highlighted as consistent compounder)
+        if not is_consistent_compounder:
+            if perf.cagr_rank_3y and perf.cagr_rank_3y <= t_rank_top:
+                is_high_return = True
+                highlights.append({
+                    "Performance": {
+                        "text": f"Top-tier performer in its category, ranking #{perf.cagr_rank_3y} over the last 3 years.",
+                        "type": "positive"
+                    }
+                })
+            elif perf.cagr_3y and risk.cat_avg_3y:
+                diff = perf.cagr_3y - risk.cat_avg_3y
+                if diff > t_outperform_min:
+                    is_high_return = True
+                    highlights.append({
+                        "Return": {
+                            "text": f"Consistently outperformed category average by {diff:.1f}% over 3 years.",
+                            "type": "positive"
+                        }
+                    })
+                elif diff < t_underperform_min:
+                    highlights.append({
+                        "Underperformance": {
+                            "text": f"Underperformed category average by {abs(diff):.1f}% over 3 years.",
+                            "type": "risk"
+                        }
+                    })
+
+    # 2. Cost Efficiency
+    if enrichment.expense_ratio is not None:
+        if enrichment.expense_ratio < t_expense_low:
+            highlights.append({
+                "Cost": {
+                    "text": f"Highly cost-effective with an expense ratio of just {enrichment.expense_ratio}%.",
+                    "type": "positive"
+                }
+            })
+        elif enrichment.expense_ratio > t_expense_high:
+            highlights.append({
+                "Cost": {
+                    "text": f"Expensive relative to peers, with an expense ratio of {enrichment.expense_ratio}%.",
+                    "type": "risk"
+                }
+            })
+
+    # 3. Concentration Risk
+    if enrichment.top_5_stocks_weight and enrichment.top_5_stocks_weight > t_conc_high:
+        highlights.append({
+            "Concentration": {
+                "text": f"Concentrated portfolio with {enrichment.top_5_stocks_weight:.1f}% in the top 5 holdings. Higher impact of individual stock moves.",
+                "type": "risk"
+            }
+        })
+
+    # 4. Volatility / Risk & Cross-Metrics
+    is_high_beta = False
+    if risk and risk.beta_3y:
+        if risk.beta_3y > t_beta_high:
+            is_high_beta = True
+            if is_high_return or is_consistent_compounder:
+                highlights.append({
+                    "Volatility": {
+                        "text": f"Returns come with risk: High volatility (Beta: {risk.beta_3y:.2f}) relative to the benchmark. Expect sharper swings.",
+                        "type": "info"
+                    }
+                })
+            else:
+                highlights.append({
+                    "Volatility": {
+                        "text": f"Higher volatility (Beta: {risk.beta_3y:.2f}) relative to the benchmark. Expect sharper swings.",
+                        "type": "risk"
+                    }
+                })
+        elif risk.beta_3y < t_beta_low:
+            highlights.append({
+                "Stability": {
+                    "text": f"Lower volatility (Beta: {risk.beta_3y:.2f}) than the broader market. Provides defensive stability.",
+                    "type": "positive"
+                }
+            })
+
+    # 5. Asset Type Specifics
+    if enrichment.yield_to_maturity and enrichment.yield_to_maturity > t_ytm_attr:
+        highlights.append({
+            "Yield": {
+                "text": f"Attractive gross yield of {enrichment.yield_to_maturity:.2f}% YTM for debt investors.",
+                "type": "positive"
+            }
+        })
+    
+    if enrichment.pe and enrichment.cat_avg_pe:
+        if enrichment.pe < enrichment.cat_avg_pe * t_pe_disc:
+            highlights.append({
+                "Valuation": {
+                    "text": "Value-oriented positioning with P/E significantly below category average.",
+                    "type": "positive"
+                }
+            })
+        elif enrichment.pe > enrichment.cat_avg_pe * 1.2:
+            highlights.append({
+                "Valuation": {
+                    "text": "Expensive valuation with P/E significantly above category average.",
+                    "type": "risk"
+                }
+            })
+
+    # 6. Data Staleness
+    if enrichment.fetched_at:
+        try:
+            from datetime import timezone
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+            age_days = (now_utc - enrichment.fetched_at).days
+            if age_days > 30:
+                highlights.append({
+                    "Data": {
+                        "text": f"Underlying data is {age_days} days old and may not reflect current market conditions.",
+                        "type": "warning"
+                    }
+                })
+        except Exception:
+            pass
+
+    # Fallback if no highlights generated
+    if not highlights:
+        age_text = ""
+        if enrichment.inception_date:
+            try:
+                from datetime import timezone
+                now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+                years = (now_utc.date() - enrichment.inception_date).days / 365.25
+                age_text = f" {years:.1f}-year old"
+            except Exception:
+                pass
+            
+        highlights.append({
+            "Insight": {
+                "text": f"Analyzing this{age_text} {enrichment.category or 'fund'} across its {enrichment.number_of_holdings or 'multiple'} holdings.",
+                "type": "info"
+            }
+        })
+
+    return highlights
+
+
 def parse_enrichment_response(
     scheme_id: int,
     data: Dict[str, Any],
@@ -199,7 +387,7 @@ def parse_enrichment_response(
 ) -> FundEnrichment:
     """
     Parses the DaaS JSON dictionary into the local SQLAlchemy models.
-    Does NOT save to DB - just builds the object graph.
+    Generates local intelligence highlights to replace DaaS kbyi.
     """
 
     # Parse calculated_at timestamp
@@ -327,9 +515,6 @@ def parse_enrichment_response(
         top_5_stocks_weight=_safe_float(data.get("top_5_stocks_weight")),
         top_10_stocks_weight=_safe_float(data.get("top_10_stocks_weight")),
 
-        # KBYI insights (stored as JSON text)
-        kbyi=json.dumps(data.get("kbyi")) if data.get("kbyi") else None,
-
         # API calculation timestamp
         calculated_at=calculated_at_dt,
     )
@@ -369,8 +554,8 @@ def parse_enrichment_response(
         enrichment.performance.cagr_rank_5y = _safe_int(cagr_ranks.get("5 Years"))
         enrichment.performance.cagr_rank_10y = _safe_int(cagr_ranks.get("10 Years"))
 
+        # ... (rest of the code continues as is)
         enrichment.performance.recorded_at = _safe_date(latest_hist.get("recorded_at"))
-
         # Parse Risk Metrics
         if latest_hist.get("risk_metrics"):
             risk = latest_hist["risk_metrics"]
@@ -674,6 +859,10 @@ def parse_enrichment_response(
     enrichment.is_asset_normalized = total_asset_alloc > 100.0
     enrichment.is_cap_normalized = total_cap_weight > 100.0
 
+    # 8. Local Intelligence Generation (REPLACES kbyi)
+    highlights = generate_custom_highlights(enrichment)
+    enrichment.kbyi = json.dumps(highlights)
+
     # Run Data Validation Engine (in-memory update)
     enrichment_nav = data.get("latest_nav")
     run_validations(
@@ -681,3 +870,4 @@ def parse_enrichment_response(
     )
 
     return enrichment
+

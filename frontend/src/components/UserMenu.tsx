@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, User as UserIcon, Lock, Unlock } from "lucide-react";
+import { LogOut, User as UserIcon, Lock, Unlock, Settings as SettingsIcon } from "lucide-react";
+import AnalysisPreferencesModal from "./preferences/AnalysisPreferencesModal";
 
 interface User {
     id: string;
@@ -16,6 +17,7 @@ export default function UserMenu() {
     const [activeUserId, setActiveUserId] = useState<string | null>(null);
     const [activeUserName, setActiveUserName] = useState<string>("");
     const [isOpen, setIsOpen] = useState(false);
+    const [isPrefsModalOpen, setIsPrefsModalOpen] = useState(false);
     const [pinModalUser, setPinModalUser] = useState<User | null>(null);
     const [isSettingPin, setIsSettingPin] = useState(false);
     const [isRemovingPin, setIsRemovingPin] = useState(false);
@@ -222,6 +224,20 @@ export default function UserMenu() {
                                         Remove PIN
                                     </button>
                                 )}
+
+                                <div className="border-t border-slate-100 dark:border-white/10 my-1 mx-2" />
+
+                                <button
+                                    onClick={() => {
+                                        setIsPrefsModalOpen(true);
+                                        setIsOpen(false);
+                                    }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white flex items-center transition-colors"
+                                >
+                                    <SettingsIcon size={14} className="mr-2 text-slate-400" />
+                                    Analysis Preferences
+                                </button>
+
                                 <div className="border-t border-slate-100 dark:border-white/10 my-1 mx-2" />
 
                                 <button
@@ -278,6 +294,12 @@ export default function UserMenu() {
                     </div>
                 </div>
             )}
+
+            <AnalysisPreferencesModal
+                isOpen={isPrefsModalOpen}
+                onClose={() => setIsPrefsModalOpen(false)}
+                userId={activeUserId || ""}
+            />
         </div>
     );
 }
