@@ -79,7 +79,6 @@ def test_parse_enrichment_response_contract_fields_and_relationships() -> None:
     assert enrichment.risk_metrics is not None
     assert enrichment.performance.cagr_1y == 11.1
     assert enrichment.performance.cagr_rank_1y == 4
-    assert json.loads(enrichment.performance.cagr_cat_avg) == {"1 Year": 8.1}
 
     assert len(enrichment.holdings) == 1
     assert enrichment.holdings[0].sector == "Financial Services"

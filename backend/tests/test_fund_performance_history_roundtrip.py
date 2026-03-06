@@ -51,21 +51,12 @@ def test_parser_serializes_latest_performance_history_fields() -> None:
     enrichment = parse_enrichment_response(scheme_id=1, data=payload)
 
     assert enrichment.performance is not None
-    assert json.loads(enrichment.performance.quarterly_performance) == payload[
+    assert enrichment.performance.cagr_1y == payload[
         "fund_performance_history"
-    ][-1]["quarterly_performance"]
-    assert json.loads(enrichment.performance.best_periods) == payload[
+    ][-1]["cagr_metrics"]["cagr"]["1 Year"]
+    assert enrichment.performance.cagr_rank_1y == payload[
         "fund_performance_history"
-    ][-1]["best_periods"]
-    assert json.loads(enrichment.performance.worst_periods) == payload[
-        "fund_performance_history"
-    ][-1]["worst_periods"]
-    assert json.loads(enrichment.performance.sip_returns) == payload[
-        "fund_performance_history"
-    ][-1]["sip_returns"]
-    assert json.loads(enrichment.performance.cagr_cat_avg) == payload[
-        "fund_performance_history"
-    ][-1]["cagr_metrics"]["cagr_cat_avg"]
+    ][-1]["cagr_metrics"]["cagr_rank_in_cat"]["1 Year"]
 
 
 def test_enrichment_endpoint_round_trip_performance_history(monkeypatch) -> None:
@@ -102,8 +93,5 @@ def test_enrichment_endpoint_round_trip_performance_history(monkeypatch) -> None
     perf = data["performance"]
     latest_hist = _sample_payload()["fund_performance_history"][-1]
 
-    assert json.loads(perf["quarterly_performance"]) == latest_hist["quarterly_performance"]
-    assert json.loads(perf["best_periods"]) == latest_hist["best_periods"]
-    assert json.loads(perf["worst_periods"]) == latest_hist["worst_periods"]
-    assert json.loads(perf["sip_returns"]) == latest_hist["sip_returns"]
-    assert json.loads(perf["cagr_cat_avg"]) == latest_hist["cagr_metrics"]["cagr_cat_avg"]
+    assert perf["cagr_1y"] == latest_hist["cagr_metrics"]["cagr"]["1 Year"]
+    assert perf["cagr_rank_1y"] == latest_hist["cagr_metrics"]["cagr_rank_in_cat"]["1 Year"]

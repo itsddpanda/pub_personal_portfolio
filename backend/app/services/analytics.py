@@ -53,6 +53,10 @@ def get_portfolio_summary(session: Session, user_id: str):
     scheme_dtos = get_schemes_by_ids(session, scheme_ids_to_fetch)
     scheme_map = {s.id: s for s in scheme_dtos}
 
+    from app.models.models import FundEnrichment
+    enrichments = session.exec(select(FundEnrichment).where(FundEnrichment.scheme_id.in_(scheme_ids_to_fetch))).all()
+    enrichment_map = {e.scheme_id: e for e in enrichments}
+
     processed_holdings = []
     total_current_value = 0.0
     total_invested_value = 0.0
@@ -71,6 +75,8 @@ def get_portfolio_summary(session: Session, user_id: str):
         total_current_value += current_val
         total_invested_value += invested_sum
 
+        enrichment_record = enrichment_map.get(scheme_id)
+
         processed_holdings.append(
             {
                 "scheme_id": scheme_id,
@@ -82,6 +88,10 @@ def get_portfolio_summary(session: Session, user_id: str):
                 "current_nav": nav,
                 "current_value": current_val,
                 "invested_value": float(invested_sum),
+                "is_sectors_normalized": enrichment_record.is_sectors_normalized if enrichment_record else False,
+                "is_holdings_normalized": enrichment_record.is_holdings_normalized if enrichment_record else False,
+                "is_asset_normalized": enrichment_record.is_asset_normalized if enrichment_record else False,
+                "is_cap_normalized": enrichment_record.is_cap_normalized if enrichment_record else False,
             }
         )
 
@@ -262,6 +272,10 @@ def get_portfolio_summary(session: Session, user_id: str):
             "is_estimated": scheme_id in estimated_schemes,
             "xirr": s_xirr,
             "xirr_status": s_xirr_status,
+            "is_sectors_normalized": ph.get("is_sectors_normalized", False),
+            "is_holdings_normalized": ph.get("is_holdings_normalized", False),
+            "is_asset_normalized": ph.get("is_asset_normalized", False),
+            "is_cap_normalized": ph.get("is_cap_normalized", False),
         }
 
         if scheme_id in estimated_schemes:

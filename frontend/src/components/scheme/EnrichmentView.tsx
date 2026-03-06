@@ -549,7 +549,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                             <div className="space-y-5">
                                 {(data.equity_alloc != null || data.debt_alloc != null || data.cash_alloc != null) && (
                                     <div>
-                                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Asset Allocation</h4>
+                                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            Asset Allocation
+                                            {data.is_asset_normalized && (
+                                                <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Data exceeded 100% and was normalized">
+                                                    <AlertTriangle className="w-3 h-3" /> Normalized
+                                                </span>
+                                            )}
+                                        </h4>
                                         <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                             {data.equity_alloc > 0 && <div style={{ width: `${data.equity_alloc}%` }} className="bg-indigo-500" title={`Equity: ${data.equity_alloc}%`} />}
                                             {data.debt_alloc > 0 && <div style={{ width: `${data.debt_alloc}%` }} className="bg-sky-500" title={`Debt: ${data.debt_alloc}%`} />}
@@ -571,7 +578,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                     const scaleCap = totalCap > 0 ? 100 / totalCap : 1;
                                     return (
                                         <div>
-                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Market Cap</h4>
+                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                Market Cap
+                                                {data.is_cap_normalized && (
+                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Data exceeded 100% and was normalized">
+                                                        <AlertTriangle className="w-3 h-3" /> Normalized
+                                                    </span>
+                                                )}
+                                            </h4>
                                             <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                                 {data.large_cap_wt > 0 && <div style={{ width: `${data.large_cap_wt * scaleCap}%` }} className="bg-indigo-600" title={`Large Cap: ${data.large_cap_wt}%`} />}
                                                 {data.mid_cap_wt > 0 && <div style={{ width: `${data.mid_cap_wt * scaleCap}%` }} className="bg-indigo-400" title={`Mid Cap: ${data.mid_cap_wt}%`} />}
@@ -618,7 +632,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                         <>
                                             {/* Distribution Bar */}
                                             <div>
-                                                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Sector Distribution</h4>
+                                                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                    Sector Distribution
+                                                    {data.is_sectors_normalized && (
+                                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Data exceeded 100% and was normalized">
+                                                            <AlertTriangle className="w-3 h-3" /> Normalized
+                                                        </span>
+                                                    )}
+                                                </h4>
                                                 <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                                     {allSectors.map((s, idx) => (
                                                         <div key={s.name} style={{ width: `${(s.weight * scale)}%` }} className={colors[idx % colors.length]} title={`${s.name}: ${s.weight.toFixed(2)}%`} />
@@ -688,7 +709,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                 return (
                                     <div className="mt-6">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Top Holdings</h4>
+                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                                Top Holdings
+                                                {data.is_holdings_normalized && (
+                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Data exceeded 100% and was normalized">
+                                                        <AlertTriangle className="w-3 h-3" /> Normalized
+                                                    </span>
+                                                )}
+                                            </h4>
                                             <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 shrink-0 self-start sm:self-auto">
                                                 {(["heaviest", "increased", "decreased"] as const).map(v => (
                                                     <button
