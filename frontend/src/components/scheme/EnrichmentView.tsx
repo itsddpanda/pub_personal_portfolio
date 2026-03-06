@@ -552,7 +552,7 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                         <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                                             Asset Allocation
                                             {data.is_asset_normalized && (
-                                                <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Data exceeded 100% and was normalized">
+                                                <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Asset Allocation was normalized">
                                                     <AlertTriangle className="w-3 h-3" /> Normalized
                                                 </span>
                                             )}
@@ -581,7 +581,7 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                                                 Market Cap
                                                 {data.is_cap_normalized && (
-                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Data exceeded 100% and was normalized">
+                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Cap distribution was normalized">
                                                         <AlertTriangle className="w-3 h-3" /> Normalized
                                                     </span>
                                                 )}
@@ -635,7 +635,7 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                                 <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
                                                     Sector Distribution
                                                     {data.is_sectors_normalized && (
-                                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Data exceeded 100% and was normalized">
+                                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Sector weight% was normalized">
                                                             <AlertTriangle className="w-3 h-3" /> Normalized
                                                         </span>
                                                     )}
@@ -712,7 +712,7 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                             <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
                                                 Top Holdings
                                                 {data.is_holdings_normalized && (
-                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Data exceeded 100% and was normalized">
+                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Holding weight% was normalized">
                                                         <AlertTriangle className="w-3 h-3" /> Normalized
                                                     </span>
                                                 )}
