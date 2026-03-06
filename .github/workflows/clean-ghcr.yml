@@ -20,7 +20,7 @@ jobs:
     
     strategy:
       matrix:
-        package: ['private_fund_analyzer-backend', 'private_fund_analyzer-frontend']
+        package: ['mfa-frontend', 'mfa-backend']
 
     steps:
       - name: Delete old packages
