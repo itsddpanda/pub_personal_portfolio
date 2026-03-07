@@ -199,8 +199,14 @@ def get_scheme_details(
         calc_nav_change_pct = enrichment.nav_change_percent
 
     calc_nav_change_amount = None
+    calc_nav_absolute_change = None
     if calc_nav_change_pct is not None:
         calc_nav_change_amount = current_value * (calc_nav_change_pct / (100.0 + calc_nav_change_pct))
+    
+    if len(nav_history_records) >= 2:
+        nav_today = nav_history_records[0].nav
+        nav_yday = nav_history_records[1].nav
+        calc_nav_absolute_change = nav_today - nav_yday
 
 
     return {
@@ -231,6 +237,7 @@ def get_scheme_details(
             "stamp_duty": round(total_stamp_duty, 2),
             "nav_change_percent": calc_nav_change_pct,
             "nav_change_amount": round(calc_nav_change_amount, 2) if calc_nav_change_amount is not None else None,
+            "nav_absolute_change": round(calc_nav_absolute_change, 4) if calc_nav_absolute_change is not None else None,
         },
         "ledger": ledger,
     }

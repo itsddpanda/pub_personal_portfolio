@@ -59,6 +59,10 @@ export default function DashboardPage() {
                 router.push('/upload');
             } else {
                 setData(result);
+                if (result.nav_sync_status === 'IN_PROGRESS' || result.nav_sync_status === 'FETCHING') {
+                    setSyncing(true);
+                    syncingRef.current = true;
+                }
             }
         } catch (error) {
             console.error("Failed to fetch dashboard", error);
@@ -166,7 +170,7 @@ export default function DashboardPage() {
 
     return (
         <div className="min-h-[calc(100vh-4rem)] p-4 sm:p-6 lg:p-8 bg-transparent">
-            <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+            <div className="w-[90%] max-w-none mx-auto space-y-6 sm:space-y-8">
 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white/90 dark:bg-slate-900/50 backdrop-blur-md p-5 rounded-2xl border border-slate-200 dark:border-white/5 shadow-sm dark:shadow-lg gap-4">
@@ -230,7 +234,14 @@ export default function DashboardPage() {
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                     <Card title="Current Value" href="/drilldown/current-value">
-                        <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500 dark:from-indigo-400 dark:to-cyan-400 drop-shadow-sm">₹{total_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                        <p className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500 dark:from-indigo-400 dark:to-cyan-400 drop-shadow-sm mb-2">₹{total_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
+                        {data.portfolio_1d_change_amount !== null && data.portfolio_1d_change_percent !== null && (
+                            <div className={`inline-flex items-center px-2.5 py-1 rounded-md text-sm font-semibold tracking-wide shadow-sm border ${data.portfolio_1d_change_amount >= 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20'}`}>
+                                <span className="mr-1.5">{data.portfolio_1d_change_amount >= 0 ? '+' : '-'}₹{Math.abs(data.portfolio_1d_change_amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                                <span className="opacity-80">({data.portfolio_1d_change_percent > 0 ? '+' : ''}{data.portfolio_1d_change_percent.toFixed(2)}%)</span>
+                                <span className="ml-2 text-[10px] uppercase tracking-wider opacity-60">1D</span>
+                            </div>
+                        )}
                     </Card>
                     <Card title="Invested Value" href="/drilldown/invested-value">
                         <p className="text-4xl font-bold text-slate-800 dark:text-slate-200">₹{invested_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</p>
@@ -246,20 +257,7 @@ export default function DashboardPage() {
                             </span>
                         </p>
                     </Card>
-                    <Card title="1D Change">
-                        {data.portfolio_1d_change_amount !== null && data.portfolio_1d_change_percent !== null ? (
-                            <>
-                                <p className={`text-4xl font-bold ${data.portfolio_1d_change_amount >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
-                                    {data.portfolio_1d_change_amount >= 0 ? '+' : '-'}₹{Math.abs(data.portfolio_1d_change_amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                                </p>
-                                <p className={`text-sm mt-2 font-medium ${data.portfolio_1d_change_percent >= 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
-                                    ({data.portfolio_1d_change_percent > 0 ? '+' : ''}{data.portfolio_1d_change_percent.toFixed(2)}%)
-                                </p>
-                            </>
-                        ) : (
-                            <p className="text-4xl font-bold text-slate-400">--</p>
-                        )}
-                    </Card>
+
                     <Card title="XIRR" href="/drilldown/xirr">
                         <p className={`text-4xl font-bold ${xirr >= 0 ? 'text-violet-600 dark:text-violet-400 drop-shadow-[0_0_12px_rgba(167,139,250,0.3)]' : 'text-rose-500 dark:text-rose-400'}`}>
                             {xirr.toFixed(2)}%

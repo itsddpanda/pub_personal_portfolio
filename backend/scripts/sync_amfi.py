@@ -87,18 +87,18 @@ def validate_amfi_payload(text: str, isin_map_path: str | None = None) -> tuple[
 
 def update_status(session: Session, status: str):
     """Updates the sync status in the SystemState table."""
-    state = session.get(SystemState, "nav_sync_status")
+    state = session.get(SystemState, "amfi_bulk_sync_status")
     if not state:
-        state = SystemState(key="nav_sync_status", value=status)
+        state = SystemState(key="amfi_bulk_sync_status", value=status)
     else:
         state.value = status
         state.updated_at = datetime.datetime.utcnow()
     session.add(state)
 
-    last_run = session.get(SystemState, "nav_sync_last_run")
+    last_run = session.get(SystemState, "amfi_bulk_sync_last_run")
     if not last_run:
         last_run = SystemState(
-            key="nav_sync_last_run", value=datetime.datetime.utcnow().isoformat()
+            key="amfi_bulk_sync_last_run", value=datetime.datetime.utcnow().isoformat()
         )
     else:
         last_run.value = datetime.datetime.utcnow().isoformat()
