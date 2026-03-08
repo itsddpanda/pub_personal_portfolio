@@ -28,6 +28,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           package: ${{ matrix.package }}
-          keep-n-most-recent: ${{ github.event.inputs.keep || '3' }}
-          older-than: 7 days
+          keep-n-most-recent: ${{ github.event.inputs.keep || '4' }}
           validate-token: true
