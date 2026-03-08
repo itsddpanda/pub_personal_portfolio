@@ -45,4 +45,7 @@ tmp/
 *.sqlite
 *.sqlite3
 mfa.db
+.agent/
+*.py
 .*/
+vex*
