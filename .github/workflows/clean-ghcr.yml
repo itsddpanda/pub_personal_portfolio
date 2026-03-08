@@ -9,7 +9,7 @@ on:
       keep:
         description: 'Number of images to keep'
         required: true
-        default: '3'
+        default: '4'
 
 jobs:
   clean-ghcr:
@@ -24,11 +24,10 @@ jobs:
 
     steps:
       - name: Delete old packages
-        uses: snok/container-retention-policy@v3.0.1
+        uses: dataaxiom/ghcr-cleanup-action@v1.0.16
         with:
-          account: ${{ github.repository_owner }}
-          image-names: ${{ matrix.package }}
-          image-tags: '*'
-          cut-off: 7d
-          keep-n-most-recent: ${{ github.event.inputs.keep || '3' }}
           token: ${{ secrets.GITHUB_TOKEN }}
+          package: ${{ matrix.package }}
+          keep-n-most-recent: ${{ github.event.inputs.keep || '3' }}
+          older-than: 7 days
+          validate-token: true
