@@ -6,8 +6,9 @@ ENV LC_ALL=C.UTF-8
 
 WORKDIR /app
 
-# Install curl (for healthcheck) with --no-install-recommends to save ~69MB
-RUN apt-get update && apt-get install --no-install-recommends -y curl sqlite3 cron && rm -rf /var/lib/apt/lists/*
+# Install dependencies including tzdata for timezone support
+RUN apt-get update && apt-get install --no-install-recommends -y curl sqlite3 cron tzdata && rm -rf /var/lib/apt/lists/*
+
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
