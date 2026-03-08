@@ -196,8 +196,19 @@ def generate_custom_highlights(enrichment: FundEnrichment, thresholds: Optional[
     Replaces static/poor-quality DaaS kbyi intelligence.
     """
     if thresholds is None:
-        from app.services.threshold_resolver import resolve_thresholds
-        thresholds = resolve_thresholds(enrichment.category, enrichment.sub_category)
+        # Hardcoded default thresholds as fallback for deleted threshold_resolver
+        thresholds = {
+            "cagr_rank_top": 5,
+            "cagr_outperform_min": 2.0,
+            "cagr_underperform_min": -2.0,
+            "expense_ratio_low": 0.5,
+            "expense_ratio_high": 2.0,
+            "concentration_top5_high": 35.0,
+            "beta_high": 1.2,
+            "beta_low": 0.8,
+            "ytm_attractive": 7.5,
+            "pe_discount_pct": 0.8,
+        }
 
     highlights = []
 

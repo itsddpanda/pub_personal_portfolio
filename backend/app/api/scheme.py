@@ -373,30 +373,12 @@ def get_scheme_enrichment(
     if not dto:
         raise HTTPException(status_code=500, detail="Failed to retrieve enrichment DTO")
 
-    # 4. Apply personalized thresholds logic on the fly
+    # 4. Apply custom highlights logic on the fly
     from app.services.fund_intelligence import generate_custom_highlights
-    from app.services.threshold_resolver import resolve_thresholds
-    from app.models.models import UserHighlightPrefs
     import json
 
-    user_prefs = None
-    if x_user_id:
-        try:
-            user_uuid = UUID(x_user_id)
-            user_prefs = session.exec(
-                select(UserHighlightPrefs).where(UserHighlightPrefs.user_id == user_uuid)
-            ).first()
-        except ValueError:
-            pass
-
-    resolved_thresholds = resolve_thresholds(
-        category=dto.category, 
-        sub_category=dto.sub_category, 
-        user_prefs=user_prefs
-    )
-
-    # Re-generate the custom highlights with context
-    personalized_highlights = generate_custom_highlights(dto, thresholds=resolved_thresholds)
+    # Multi-period highlights with context
+    personalized_highlights = generate_custom_highlights(dto)
     dto.kbyi = json.dumps(personalized_highlights)
     
     dto.isin = scheme.isin
