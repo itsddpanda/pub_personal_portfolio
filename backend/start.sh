@@ -18,6 +18,10 @@ echo "Running initial NAV sync..."
 echo "Startup -> Generating ISIN map..."
 /usr/local/bin/python -c "from app.utils.master_data import generate_isin_map; generate_isin_map()"
 
+# Install crontab and start cron daemon for scheduled jobs
+crontab /app/crontab
+cron
+
 # Run the main uvicorn application
 exec uvicorn main:app --host 0.0.0.0 --port 8001 --workers 2
 

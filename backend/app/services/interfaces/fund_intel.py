@@ -96,12 +96,18 @@ class ManagerDTO(BaseModel):
 class EnrichmentDTO(BaseModel):
     id: int
     scheme_id: int
+    isin: Optional[str] = None
+    scheme_name: Optional[str] = None
     fund_name: Optional[str] = None
     fetched_at: datetime
     validation_status: int
     nav_validation_status: int
     name_validation_status: int
     freshness_status: int
+    is_sectors_normalized: bool = False
+    is_holdings_normalized: bool = False
+    is_asset_normalized: bool = False
+    is_cap_normalized: bool = False
 
     # Identifiers
     code: Optional[str] = None

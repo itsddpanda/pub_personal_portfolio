@@ -31,7 +31,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         // Auto-dismiss after 30 seconds
         setTimeout(() => {
             setToasts((prev) => prev.filter((t) => t.id !== id));
-        }, 30000); // 30 seconds
+        }, 2000); // 5 seconds
     }, []);
 
     const success = useCallback((msg: string) => addToast(msg, 'success'), [addToast]);

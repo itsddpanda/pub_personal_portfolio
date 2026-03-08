@@ -10,7 +10,7 @@ A privacy-first, personal portfolio analyzer for Indian mutual funds. Upload you
 - **👤 Multi-User Profiles**: Automatically creates user profiles based on PAN numbers found in the CAS, isolated with optional PIN protection.
 - **📈 Portfolio Analytics**: Track Invested Value, Current Value, Total Gain, and XIRR at a glance. Accurately builds ledger entries via deterministic transaction hashing.
 - **🧠 Fund Intelligence Engine**: Deep insights into each fund including category averages, Risk-Return metrics (Sharpe, Sortino, Beta), Asset/Sector Allocation, Concentration metrics, Valuation Ratios, Debt metrics (YTM, Modified Duration), and Peer group rankings.
-- **🔄 Automated NAV Tracking**: Background synchronization keeps your historical NAVs and current portfolio valuations strictly up-to-date.
+- **🔄 Automated NAV Tracking**: Background Cron synchronization safely keeps your historical NAVs and current portfolio valuations strictly up-to-date asynchronously without you doing anything.
 - **📊 Rich Visualizations**: View interactive historical NAV charts, sector/stock allocations, and compare funds against peers effortlessly.
 
 ---
@@ -84,6 +84,8 @@ API docs (Swagger UI) at `http://localhost:8001/docs`.
 | Variable        | Default                             | Description                          |
 | --------------- | ----------------------------------- | ------------------------------------ |
 | `DATABASE_URL`  | `sqlite:////data/mfa.db`            | SQLite database path (inside Docker volume) |
+| `LOG_LEVEL`     | `INFO`                              | Logging verbosity (DEBUG, INFO, WARNING, ERROR) |
+| `TZ`            | `Asia/Kolkata`                      | Timezone for container and cron jobs  |
 | `CORS_ORIGINS`  | `http://localhost:3001,...`         | Comma-separated allowed origins      |
 
 ---
@@ -103,8 +105,6 @@ mfa/
 ├── frontend/                # Next.js application
 │   └── src/
 ├── assets/                  # Images for README and documentation
-├── docs/                    # Design specs, PRDs, and architecture docs
-├── setup.sh                 # One-step setup script
 ├── docker-compose.yml       # Build from source
 └── docker-compose.prod.yml  # Deploy from pre-built images
 ```

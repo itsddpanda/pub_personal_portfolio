@@ -7,9 +7,9 @@ import { getSchemeEnrichment, RetryableError } from '@/lib/api';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
-import { Sparkles, RefreshCcw, AlertTriangle, Clock, Info, CheckCircle2, TrendingUp, TrendingDown, ShieldCheck, Users, Briefcase, ChevronRight, Activity } from 'lucide-react';
+import { Sparkles, RefreshCcw, AlertTriangle, Clock, Info, CheckCircle2, TrendingUp, TrendingDown, ShieldCheck, Users, Briefcase, ChevronRight, Activity, Target } from 'lucide-react';
 
-export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
+export function EnrichmentView({ amfiCode, onLoaded }: { amfiCode: string; onLoaded?: () => void }) {
     const [data, setData] = useState<any | null>(null);
     const [loading, setLoading] = useState(true);
     const [polling, setPolling] = useState(false);
@@ -32,6 +32,7 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
             const res = await getSchemeEnrichment(amfiCode, force);
             if (res) {
                 setData(res);
+                onLoaded?.();
                 setPolling(false);
                 setCountdown(null);
                 clearTimeouts();
@@ -83,20 +84,13 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
     };
 
     useEffect(() => {
-        // Only auto-fetch if we ALREADY have data cached/saved in the DB 
-        // We will do a quick check to see if it exists
-        const checkExisting = async () => {
-            try {
-                const res = await getSchemeEnrichment(amfiCode);
-                if (res) setData(res);
-            } catch (e) {
-                // Ignore errors on background check
-            } finally {
-                setLoading(false);
-            }
-        };
-        checkExisting();
+        // Auto-fetch on mount. 
+        // If data is ready, it loads. If 503, it starts polling!
+        // We use an internal async IIFE because fetchData is wrapped in useCallback and might have stale closures
+        // if we just blindly pass it in some cases, but here it's fine.
+        fetchData(false, false);
         return clearTimeouts;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [amfiCode]);
 
     if (loading && !data) {
@@ -266,50 +260,51 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
 
                             if (!content || !content.text) return null;
 
-                            // Clean up trailing "across ." artifacts from API Generation
-                            let rawText = content.text as string;
-                            rawText = rawText.replace(/across\s+\.$/, ".");
+                            const rawText = content.text as string;
+                            const type = content.type || 'info';
 
-                            // Intelligently replace {{template}} string tags with actual values or strip brackets
-                            rawText = rawText.replace(/\{\{(.*?)\}\}/g, (match, p1) => {
-                                const lowerP1 = p1.toLowerCase();
-                                if (lowerP1.includes('expense ratio') && data.expense_ratio != null) {
-                                    return `${p1} (${data.expense_ratio}%)`;
-                                }
-                                if (lowerP1.includes('turnover') && data.turnover_ratio != null) {
-                                    return `${p1} (${data.turnover_ratio}%)`;
-                                }
-                                if ((lowerP1.includes('aum') || lowerP1.includes('size')) && data.aum_cr != null) {
-                                    return `${p1} (₹${data.aum_cr.toLocaleString('en-IN')} Cr)`;
-                                }
-                                return p1; // Fallback: just strip the brackets
-                            });
-
-                            // Determine icon based on key type
+                            // Determine icon based on key type and semantic type
                             let Icon = Info;
                             let iconColor = "text-slate-400";
                             let bgColor = "bg-slate-100 dark:bg-slate-800";
 
-                            if (key.toLowerCase().includes('performer') || key.toLowerCase().includes('return')) {
+                            const lowKey = key.toLowerCase();
+
+                            if (type === 'positive') {
                                 Icon = TrendingUp;
                                 iconColor = "text-emerald-500";
                                 bgColor = "bg-emerald-100 dark:bg-emerald-900/30";
-                            } else if (key.toLowerCase().includes('cost') || key.toLowerCase().includes('expense')) {
+                            } else if (type === 'risk') {
+                                Icon = Activity;
+                                iconColor = "text-rose-500";
+                                bgColor = "bg-rose-100 dark:bg-rose-900/30";
+                            }
+
+                            // Specific icon overrides
+                            if (lowKey.includes('cost') || lowKey.includes('expense')) {
                                 Icon = ShieldCheck;
                                 iconColor = "text-sky-500";
                                 bgColor = "bg-sky-100 dark:bg-sky-900/30";
-                            } else if (key.toLowerCase().includes('volatility') || key.toLowerCase().includes('risk')) {
-                                Icon = Activity;
+                            } else if (lowKey.includes('concentration')) {
+                                Icon = Target;
                                 iconColor = "text-amber-500";
                                 bgColor = "bg-amber-100 dark:bg-amber-900/30";
+                            } else if (lowKey.includes('stability')) {
+                                Icon = ShieldCheck;
+                                iconColor = "text-emerald-500";
+                                bgColor = "bg-emerald-100 dark:bg-emerald-900/30";
+                            } else if (lowKey.includes('yield')) {
+                                Icon = TrendingUp;
+                                iconColor = "text-indigo-500";
+                                bgColor = "bg-indigo-100 dark:bg-indigo-900/30";
                             }
 
                             return (
-                                <div key={idx} className="flex gap-3 items-start bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                                <div key={idx} className="flex gap-3 items-start bg-white dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                                     <div className={`p-2 rounded-lg ${bgColor} shrink-0`}>
                                         <Icon className={`w-4 h-4 ${iconColor}`} />
                                     </div>
-                                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
                                         {rawText}
                                     </p>
                                 </div>
@@ -549,7 +544,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                             <div className="space-y-5">
                                 {(data.equity_alloc != null || data.debt_alloc != null || data.cash_alloc != null) && (
                                     <div>
-                                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Asset Allocation</h4>
+                                        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                            Asset Allocation
+                                            {data.is_asset_normalized && (
+                                                <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Asset Allocation was normalized">
+                                                    <AlertTriangle className="w-3 h-3" /> Normalized
+                                                </span>
+                                            )}
+                                        </h4>
                                         <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                             {data.equity_alloc > 0 && <div style={{ width: `${data.equity_alloc}%` }} className="bg-indigo-500" title={`Equity: ${data.equity_alloc}%`} />}
                                             {data.debt_alloc > 0 && <div style={{ width: `${data.debt_alloc}%` }} className="bg-sky-500" title={`Debt: ${data.debt_alloc}%`} />}
@@ -571,7 +573,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                     const scaleCap = totalCap > 0 ? 100 / totalCap : 1;
                                     return (
                                         <div>
-                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Market Cap</h4>
+                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                Market Cap
+                                                {data.is_cap_normalized && (
+                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Cap distribution was normalized">
+                                                        <AlertTriangle className="w-3 h-3" /> Normalized
+                                                    </span>
+                                                )}
+                                            </h4>
                                             <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                                 {data.large_cap_wt > 0 && <div style={{ width: `${data.large_cap_wt * scaleCap}%` }} className="bg-indigo-600" title={`Large Cap: ${data.large_cap_wt}%`} />}
                                                 {data.mid_cap_wt > 0 && <div style={{ width: `${data.mid_cap_wt * scaleCap}%` }} className="bg-indigo-400" title={`Mid Cap: ${data.mid_cap_wt}%`} />}
@@ -618,7 +627,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                         <>
                                             {/* Distribution Bar */}
                                             <div>
-                                                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Sector Distribution</h4>
+                                                <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                                    Sector Distribution
+                                                    {data.is_sectors_normalized && (
+                                                        <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Sector weight% was normalized">
+                                                            <AlertTriangle className="w-3 h-3" /> Normalized
+                                                        </span>
+                                                    )}
+                                                </h4>
                                                 <div className="flex h-3 md:h-4 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                                     {allSectors.map((s, idx) => (
                                                         <div key={s.name} style={{ width: `${(s.weight * scale)}%` }} className={colors[idx % colors.length]} title={`${s.name}: ${s.weight.toFixed(2)}%`} />
@@ -688,7 +704,14 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                 return (
                                     <div className="mt-6">
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Top Holdings</h4>
+                                            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                                Top Holdings
+                                                {data.is_holdings_normalized && (
+                                                    <span className="text-[10px] text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-1.5 py-0.5 rounded flex items-center gap-1" title="Holding weight% was normalized">
+                                                        <AlertTriangle className="w-3 h-3" /> Normalized
+                                                    </span>
+                                                )}
+                                            </h4>
                                             <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 shrink-0 self-start sm:self-auto">
                                                 {(["heaviest", "increased", "decreased"] as const).map(v => (
                                                     <button
@@ -814,10 +837,16 @@ export function EnrichmentView({ amfiCode }: { amfiCode: string }) {
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                         {sortedPeers.map((peer: any, i: number) => {
+                                            const isHighlight = (peer.peer_isin === data.isin) || (peer.fund_name === data.scheme_name);
                                             return (
-                                                <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                                                    <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
-                                                        <div className="font-medium whitespace-nowrap md:whitespace-normal" title={peer.fund_name}>{peer.fund_name}</div>
+                                                <tr key={i} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all ${isHighlight ? 'bg-indigo-100/50 dark:bg-indigo-500/20 shadow-[inset_4px_0_0_0_theme(colors.indigo.500)]' : ''}`}>
+                                                    <td className={`px-4 py-3 ${isHighlight ? 'text-indigo-800 dark:text-indigo-300' : 'text-slate-700 dark:text-slate-300'}`}>
+                                                        <div className={`whitespace-nowrap md:whitespace-normal ${isHighlight ? 'font-bold' : 'font-medium'}`} title={peer.fund_name}>
+                                                            {peer.fund_name}
+                                                            {isHighlight && (
+                                                                <span className="ml-2 px-1.5 py-0.5 text-[9px] bg-indigo-500 text-white rounded uppercase tracking-tighter">Current</span>
+                                                            )}
+                                                        </div>
                                                         {peer.peer_isin && peer.fund_name === 'Unknown Peer' && (
                                                             <div className="text-[10px] text-slate-400 font-mono mt-0.5" title="Peer ISIN">ISIN: {peer.peer_isin}</div>
                                                         )}

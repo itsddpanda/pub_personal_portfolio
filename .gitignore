@@ -1,7 +1,8 @@
 # System
 .DS_Store
 Thumbs.db
-
+.*
+*.toml
 # Python
 __pycache__/
 *.py[cod]
@@ -44,5 +45,4 @@ tmp/
 *.sqlite
 *.sqlite3
 mfa.db
-.agent/
-*.py
+.*/

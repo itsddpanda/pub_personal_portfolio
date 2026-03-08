@@ -5,6 +5,7 @@ import datetime
 import logging
 from sqlmodel import Session
 from sqlmodel import select
+from sqlalchemy.dialects.sqlite import insert
 
 
 # Add the parent directory to the python path so we can import 'app'
@@ -87,18 +88,18 @@ def validate_amfi_payload(text: str, isin_map_path: str | None = None) -> tuple[
 
 def update_status(session: Session, status: str):
     """Updates the sync status in the SystemState table."""
-    state = session.get(SystemState, "nav_sync_status")
+    state = session.get(SystemState, "amfi_bulk_sync_status")
     if not state:
-        state = SystemState(key="nav_sync_status", value=status)
+        state = SystemState(key="amfi_bulk_sync_status", value=status)
     else:
         state.value = status
         state.updated_at = datetime.datetime.utcnow()
     session.add(state)
 
-    last_run = session.get(SystemState, "nav_sync_last_run")
+    last_run = session.get(SystemState, "amfi_bulk_sync_last_run")
     if not last_run:
         last_run = SystemState(
-            key="nav_sync_last_run", value=datetime.datetime.utcnow().isoformat()
+            key="amfi_bulk_sync_last_run", value=datetime.datetime.utcnow().isoformat()
         )
     else:
         last_run.value = datetime.datetime.utcnow().isoformat()
@@ -240,8 +241,9 @@ def run_sync():
 
             # 4. Update schemes in our local database
             schemes = session.exec(select(Scheme).where(Scheme.amfi_code != None)).all()
-            updated_count = 0
-
+            
+            nav_dicts = []
+            
             for scheme in schemes:
                 if scheme.amfi_code in amfi_data:
                     nav, nav_date = amfi_data[scheme.amfi_code]
@@ -251,24 +253,23 @@ def run_sync():
                     scheme.latest_nav_date = nav_date
                     session.add(scheme)
 
-                    # Add to history if doesn't exist
-                    exists = session.exec(
-                        select(NavHistory).where(
-                            NavHistory.scheme_id == scheme.id,
-                            NavHistory.date == nav_date,
-                        )
-                    ).first()
-
-                    if not exists:
-                        history = NavHistory(
-                            scheme_id=scheme.id, date=nav_date, nav=nav
-                        )
-                        session.add(history)
-
-                    updated_count += 1
+                    # Build history records for bulk processing
+                    nav_dicts.append({
+                        "scheme_id": scheme.id, 
+                        "date": nav_date, 
+                        "nav": nav
+                    })
+                    
+            if nav_dicts:
+                # Add to history if doesn't exist via fast C-binary bulk evaluation
+                stmt = insert(NavHistory).values(nav_dicts)
+                stmt = stmt.on_conflict_do_nothing(
+                    index_elements=["scheme_id", "date"]
+                )
+                session.exec(stmt)
 
             session.commit()
-            logger.info(f"Successfully updated {updated_count} local schemes")
+            logger.info(f"Successfully updated {len(nav_dicts)} local schemes")
 
             # 5. Mark status as COMPLETED
             update_status(session, "IDLE")

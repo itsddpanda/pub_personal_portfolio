@@ -53,6 +53,22 @@ def get_portfolio_summary(session: Session, user_id: str):
     scheme_dtos = get_schemes_by_ids(session, scheme_ids_to_fetch)
     scheme_map = {s.id: s for s in scheme_dtos}
 
+    from app.models.models import FundEnrichment, NavHistory
+    enrichments = session.exec(select(FundEnrichment).where(FundEnrichment.scheme_id.in_(scheme_ids_to_fetch))).all()
+    enrichment_map = {e.scheme_id: e for e in enrichments}
+    
+    # Fetch historical NAVs (sorted descending) to calculate accurate 1D change
+    history_records = session.exec(
+        select(NavHistory)
+        .where(NavHistory.scheme_id.in_(scheme_ids_to_fetch))
+        .order_by(NavHistory.scheme_id, NavHistory.date.desc())
+    ).all()
+    
+    recent_navs = defaultdict(list)
+    for hr in history_records:
+        if len(recent_navs[hr.scheme_id]) < 2:
+            recent_navs[hr.scheme_id].append(hr.nav)
+
     processed_holdings = []
     total_current_value = 0.0
     total_invested_value = 0.0
@@ -71,6 +87,19 @@ def get_portfolio_summary(session: Session, user_id: str):
         total_current_value += current_val
         total_invested_value += invested_sum
 
+        enrichment_record = enrichment_map.get(scheme_id)
+
+        # Calculate exact local 1D change %
+        nav_history = recent_navs.get(scheme_id, [])
+        nav_change_pct = None
+        if len(nav_history) >= 2:
+            nav_today = nav_history[0]
+            nav_yday = nav_history[1]
+            if nav_yday > 0:
+                nav_change_pct = ((nav_today - nav_yday) / nav_yday) * 100
+        elif enrichment_record and enrichment_record.nav_change_percent is not None:
+            nav_change_pct = enrichment_record.nav_change_percent
+
         processed_holdings.append(
             {
                 "scheme_id": scheme_id,
@@ -82,6 +111,11 @@ def get_portfolio_summary(session: Session, user_id: str):
                 "current_nav": nav,
                 "current_value": current_val,
                 "invested_value": float(invested_sum),
+                "is_sectors_normalized": enrichment_record.is_sectors_normalized if enrichment_record else False,
+                "is_holdings_normalized": enrichment_record.is_holdings_normalized if enrichment_record else False,
+                "is_asset_normalized": enrichment_record.is_asset_normalized if enrichment_record else False,
+                "is_cap_normalized": enrichment_record.is_cap_normalized if enrichment_record else False,
+                "nav_change_percent": nav_change_pct,
             }
         )
 
@@ -208,6 +242,10 @@ def get_portfolio_summary(session: Session, user_id: str):
 
     # Re-map holdings to inject invested_value
     latest_nav_date = None
+    total_value_for_1d = 0.0
+    total_weighted_1d = 0.0
+    total_weighted_1d_amount = 0.0
+
     for ph in processed_holdings:
         scheme_id = ph["scheme_id"]
         net_units = ph["units"]
@@ -220,6 +258,13 @@ def get_portfolio_summary(session: Session, user_id: str):
                 latest_nav_date = ph["latest_nav_date"]
 
         fifo_invested = scheme_invested_map.get(scheme_id, 0.0)
+
+        if ph.get("nav_change_percent") is not None:
+            total_value_for_1d += current_val
+            total_weighted_1d += current_val * ph["nav_change_percent"]
+            # Change = TodayValue * (Percent / (100 + Percent))
+            p = ph["nav_change_percent"]
+            total_weighted_1d_amount += current_val * (p / (100.0 + p))
 
         # --- Per-Scheme XIRR Calculation & Edge Cases ---
         s_xirr = None
@@ -262,6 +307,11 @@ def get_portfolio_summary(session: Session, user_id: str):
             "is_estimated": scheme_id in estimated_schemes,
             "xirr": s_xirr,
             "xirr_status": s_xirr_status,
+            "is_sectors_normalized": ph.get("is_sectors_normalized", False),
+            "is_holdings_normalized": ph.get("is_holdings_normalized", False),
+            "is_asset_normalized": ph.get("is_asset_normalized", False),
+            "is_cap_normalized": ph.get("is_cap_normalized", False),
+            "nav_change_percent": ph.get("nav_change_percent"),
         }
 
         if scheme_id in estimated_schemes:
@@ -306,6 +356,8 @@ def get_portfolio_summary(session: Session, user_id: str):
         "has_estimated_holdings": len(estimated_schemes) > 0,
         "estimated_schemes_count": len(estimated_schemes),
         "total_stamp_duty": round(total_stamp_duty, 2),
+        "portfolio_1d_change_percent": round(total_weighted_1d / total_value_for_1d, 2) if total_value_for_1d > 0 else None,
+        "portfolio_1d_change_amount": round(total_weighted_1d_amount, 2) if total_value_for_1d > 0 else None,
         "nav_sync_status": sys_status.value if sys_status else "IDLE",
         "nav_sync_last_run": sys_last_run.value if sys_last_run else None,
     }

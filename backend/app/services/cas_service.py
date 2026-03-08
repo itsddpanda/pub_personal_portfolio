@@ -13,10 +13,12 @@ from sqlmodel import Session, select
 from fastapi import HTTPException
 from app.models.models import User, Portfolio, Folio, Scheme, Transaction, AMC
 
-# Load ISIN Map
+# Load Maps
 ISIN_MAP = {}
+AMC_MAP = {}
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ISIN_MAP_PATH = os.path.join(BASE_DIR, "data", "isin_amfi_map.json")
+AMC_MAP_PATH = os.path.join(BASE_DIR, "config", "amc_map.json")
 
 # Fallback for Docker container path if BASE_DIR logic doesn't align with mount
 if not os.path.exists(ISIN_MAP_PATH):
@@ -24,6 +26,12 @@ if not os.path.exists(ISIN_MAP_PATH):
         ISIN_MAP_PATH = "/data/isin_amfi_map.json"
     elif os.path.exists("./data/isin_amfi_map.json"):
         ISIN_MAP_PATH = "./data/isin_amfi_map.json"
+
+if not os.path.exists(AMC_MAP_PATH):
+    if os.path.exists("/app/config/amc_map.json"):
+        AMC_MAP_PATH = "/app/config/amc_map.json"
+    elif os.path.exists("./config/amc_map.json"):
+        AMC_MAP_PATH = "./config/amc_map.json"
 
 try:
     if os.path.exists(ISIN_MAP_PATH):
@@ -33,6 +41,15 @@ try:
         print(f"Warning: ISIN map not found at {ISIN_MAP_PATH}")
 except Exception as e:
     print(f"Warning: Failed to load ISIN map: {e}")
+
+try:
+    if os.path.exists(AMC_MAP_PATH):
+        with open(AMC_MAP_PATH, "r") as f:
+            AMC_MAP = json.load(f)
+    else:
+        print(f"Warning: AMC map not found at {AMC_MAP_PATH}")
+except Exception as e:
+    print(f"Warning: Failed to load AMC map: {e}")
 
 
 def process_cas_data(
@@ -184,6 +201,43 @@ def process_cas_data(
     discovered_isins = set()  # Collect ISINs for bulk enrichment prefetch
 
     for folio_data in folios:
+        # Extract and Normalize AMC Name at the folio level before creating it
+        raw_amc = folio_data.get("amc", "").strip()
+        amc_obj = None
+
+        if raw_amc:
+            amc_code = None
+            search_name = raw_amc
+            raw_clean = raw_amc.lower().replace(" mutual fund", "").replace(" mf", "").strip()
+
+            # 1. Map to standardized AMC_MAP code via fuzzy substring search
+            for map_name, m_code in AMC_MAP.items():
+                map_clean = map_name.lower().replace(" mutual fund", "").replace(" mf", "").strip()
+                if raw_clean == map_clean or raw_clean in map_clean or map_clean in raw_clean:
+                    amc_code = m_code
+                    search_name = map_name
+                    break
+            
+            if amc_code:
+                # Lookup in DB by code
+                amc_obj = session.get(AMC, amc_code) or session.exec(select(AMC).where(AMC.code == str(amc_code))).first()
+                if not amc_obj:
+                    # Create from map if missing in DB
+                    amc_obj = AMC(name=search_name, code=str(amc_code))
+                    session.add(amc_obj)
+                    session.commit()
+                    session.refresh(amc_obj)
+            else:
+                # 2. Fallback to legacy normalization if totally unknown
+                norm_name = raw_amc.replace("Mutual Fund", "").strip()
+                amc_obj = session.exec(select(AMC).where(AMC.name == norm_name)).first()
+                if not amc_obj:
+                    code = norm_name.upper().replace(" ", "_")
+                    amc_obj = AMC(name=norm_name, code=code)
+                    session.add(amc_obj)
+                    session.commit()
+                    session.refresh(amc_obj)
+
         folio_num = folio_data.get("folio")
 
         # Get or Create Folio
@@ -194,7 +248,14 @@ def process_cas_data(
         ).first()
 
         if not folio_obj:
-            folio_obj = Folio(portfolio_id=portfolio.id, folio_number=folio_num)
+            # Assing amc_id directly
+            folio_obj = Folio(portfolio_id=portfolio.id, folio_number=folio_num, amc_id=amc_obj.id if amc_obj else None)
+            session.add(folio_obj)
+            session.commit()
+            session.refresh(folio_obj)
+        elif not folio_obj.amc_id and amc_obj:
+            # Retrospectively assign AMC for folios missing it
+            folio_obj.amc_id = amc_obj.id
             session.add(folio_obj)
             session.commit()
             session.refresh(folio_obj)
@@ -231,20 +292,8 @@ def process_cas_data(
             if not amfi and isin:
                 amfi = ISIN_MAP.get(isin)
 
-            # Extract and Normalize AMC Name
-            raw_amc = folio_data.get("amc", "").strip()
-            amc_obj = None
-
-            if raw_amc:
-                norm_name = raw_amc.replace("Mutual Fund", "").strip()
-                amc_obj = session.exec(select(AMC).where(AMC.name == norm_name)).first()
-                if not amc_obj:
-                    code = norm_name.upper().replace(" ", "_")
-                    amc_obj = AMC(name=norm_name, code=code)
-                    session.add(amc_obj)
-                    session.commit()
-                    session.refresh(amc_obj)
-
+            # AMC lookup occurs at folio-level now, we just pass amc_obj down to the scheme
+            
             # Check if Scheme Exists
             scheme_obj = session.exec(select(Scheme).where(Scheme.isin == isin)).first()
 

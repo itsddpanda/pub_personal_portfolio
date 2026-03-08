@@ -1,0 +1,6 @@
+# NAV Sync — twice daily (6:30 AM & 6:30 PM Local)
+30 6 * * * /usr/local/bin/python /app/scripts/sync_amfi.py >> /proc/1/fd/1 2>&1
+30 18 * * * /usr/local/bin/python /app/scripts/sync_amfi.py >> /proc/1/fd/1 2>&1
+
+# NAV Gap Healer — once daily (9:00 AM Local)
+0 9 * * * /usr/local/bin/python /app/scripts/heal_nav_gaps.py >> /proc/1/fd/1 2>&1

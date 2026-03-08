@@ -60,6 +60,31 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     portfolios: List["Portfolio"] = Relationship(back_populates="user")
+    highlight_prefs: Optional["UserHighlightPrefs"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"uselist": False} # One-to-one relationship
+    )
+
+class UserHighlightPrefs(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: UUID = Field(foreign_key="user.id", index=True, unique=True)
+    
+    # Threshold overrides (None = use default)
+    expense_ratio_low: Optional[float] = None
+    expense_ratio_high: Optional[float] = None
+    concentration_top5_high: Optional[float] = None
+    beta_high: Optional[float] = None
+    beta_low: Optional[float] = None
+    ytm_attractive: Optional[float] = None
+    pe_discount_pct: Optional[float] = None
+    cagr_rank_top: Optional[int] = None
+    cagr_outperform_min: Optional[float] = None
+    cagr_underperform_min: Optional[float] = None
+    
+    # Risk profile (from questionnaire)
+    risk_profile: Optional[str] = None  # "conservative", "moderate", "aggressive"
+
+    user: User = Relationship(back_populates="highlight_prefs")
 
 
 class Portfolio(SQLModel, table=True):
@@ -203,6 +228,12 @@ class FundEnrichment(SQLModel, table=True):
     top_3_sectors_weight: Optional[float] = None
     top_5_stocks_weight: Optional[float] = None
     top_10_stocks_weight: Optional[float] = None
+
+    # Normalization Meta Flags
+    is_sectors_normalized: Optional[bool] = Field(default=False)
+    is_holdings_normalized: Optional[bool] = Field(default=False)
+    is_asset_normalized: Optional[bool] = Field(default=False)
+    is_cap_normalized: Optional[bool] = Field(default=False)
 
     # KBYI insights (stored as JSON text)
     kbyi: Optional[str] = None

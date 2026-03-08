@@ -31,6 +31,7 @@ export default function PeersDrilldownPage() {
 
     const [peers, setPeers] = useState<Peer[]>([]);
     const [schemeName, setSchemeName] = useState<string>('');
+    const [schemeIsin, setSchemeIsin] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -45,6 +46,7 @@ export default function PeersDrilldownPage() {
                 if (res && res.peers) {
                     setPeers(res.peers);
                     setSchemeName(res.scheme_name || `Scheme ${amfiCode}`);
+                    setSchemeIsin(res.isin || '');
                 }
             } catch (err: any) {
                 console.error("Failed to fetch peers", err);
@@ -186,53 +188,61 @@ export default function PeersDrilldownPage() {
                                     <tr>
                                         <td colSpan={12} className="px-4 py-8 text-center text-slate-500 italic">No peers match your search.</td>
                                     </tr>
-                                ) : sortedAndFilteredPeers.map((p, i) => (
-                                    <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                        <td className="px-4 py-2 text-slate-800 dark:text-slate-300 font-medium">
-                                            {p.fund_name}
-                                            {p.fund_name === 'Unknown Peer' && p.peer_isin && <div className="text-[10px] text-slate-400 font-mono">ISIN: {p.peer_isin}</div>}
-                                        </td>
-
-                                        <td className="px-4 py-2 text-right font-mono border-l border-slate-100 dark:border-white/5">
-                                            {p.cagr_1y != null ? <span className={p.cagr_1y > 0 ? "text-emerald-500" : p.cagr_1y < 0 ? "text-rose-500" : "text-slate-600"}>{p.cagr_1y.toFixed(2)}%</span> : '-'}
-                                        </td>
-                                        <td className="px-4 py-2 text-right font-mono">
-                                            {p.cagr_3y != null ? <span className={p.cagr_3y > 0 ? "text-emerald-500" : p.cagr_3y < 0 ? "text-rose-500" : "text-slate-600"}>{p.cagr_3y.toFixed(2)}%</span> : '-'}
-                                        </td>
-                                        <td className="px-4 py-2 text-right font-mono">
-                                            {p.cagr_5y != null ? <span className={p.cagr_5y > 0 ? "text-emerald-500" : p.cagr_5y < 0 ? "text-rose-500" : "text-slate-600"}>{p.cagr_5y.toFixed(2)}%</span> : '-'}
-                                        </td>
-                                        <td className="px-4 py-2 text-right font-mono">
-                                            {p.cagr_10y != null ? <span className={p.cagr_10y > 0 ? "text-emerald-500" : p.cagr_10y < 0 ? "text-rose-500" : "text-slate-600"}>{p.cagr_10y.toFixed(2)}%</span> : '-'}
-                                        </td>
-
-                                        <td className="px-4 py-2 text-right font-mono text-slate-900 dark:text-slate-300 border-l border-slate-100 dark:border-white/5">
-                                            {p.expense_ratio != null ? `${p.expense_ratio.toFixed(2)}%` : '-'}
-                                        </td>
-                                        <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-400">
-                                            {p.std_deviation != null ? `${p.std_deviation.toFixed(2)}%` : '-'}
-                                        </td>
-                                        {hasTurnover && (
-                                            <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-400">
-                                                {p.portfolio_turnover != null ? `${p.portfolio_turnover.toFixed(2)}%` : '-'}
+                                ) : sortedAndFilteredPeers.map((p, i) => {
+                                    const isHighlight = (p.peer_isin === schemeIsin) || (p.fund_name === schemeName);
+                                    return (
+                                        <tr key={i} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all ${isHighlight ? 'bg-indigo-100/50 dark:bg-indigo-500/20 shadow-[inset_4px_0_0_0_theme(colors.indigo.500)]' : ''}`}>
+                                            <td className={`px-4 py-2 font-medium ${isHighlight ? 'text-indigo-800 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-300'}`}>
+                                                <div className="flex items-center gap-2">
+                                                    {p.fund_name}
+                                                    {isHighlight && (
+                                                        <span className="px-1.5 py-0.5 text-[9px] bg-indigo-500 text-white rounded uppercase tracking-tighter">Current</span>
+                                                    )}
+                                                </div>
+                                                {p.fund_name === 'Unknown Peer' && p.peer_isin && <div className="text-[10px] text-slate-400 font-mono">ISIN: {p.peer_isin}</div>}
                                             </td>
-                                        )}
 
-                                        {hasDebt && (
-                                            <>
-                                                <td className="px-4 py-2 text-right font-mono text-emerald-600 dark:text-emerald-400 border-l border-slate-100 dark:border-white/5">
-                                                    {p.yield_to_maturity != null ? `${p.yield_to_maturity.toFixed(2)}%` : '-'}
-                                                </td>
+                                            <td className="px-4 py-2 text-right font-mono border-l border-slate-100 dark:border-white/5">
+                                                {p.cagr_1y != null ? <span className={p.cagr_1y > 0 ? "text-emerald-500" : p.cagr_1y < 0 ? "text-rose-500" : "text-slate-600"}>{p.cagr_1y.toFixed(2)}%</span> : '-'}
+                                            </td>
+                                            <td className="px-4 py-2 text-right font-mono">
+                                                {p.cagr_3y != null ? <span className={p.cagr_3y > 0 ? "text-emerald-500" : p.cagr_3y < 0 ? "text-rose-500" : "text-slate-600"}>{p.cagr_3y.toFixed(2)}%</span> : '-'}
+                                            </td>
+                                            <td className="px-4 py-2 text-right font-mono">
+                                                {p.cagr_5y != null ? <span className={p.cagr_5y > 0 ? "text-emerald-500" : p.cagr_5y < 0 ? "text-rose-500" : "text-slate-600"}>{p.cagr_5y.toFixed(2)}%</span> : '-'}
+                                            </td>
+                                            <td className="px-4 py-2 text-right font-mono">
+                                                {p.cagr_10y != null ? <span className={p.cagr_10y > 0 ? "text-emerald-500" : p.cagr_10y < 0 ? "text-rose-500" : "text-slate-600"}>{p.cagr_10y.toFixed(2)}%</span> : '-'}
+                                            </td>
+
+                                            <td className="px-4 py-2 text-right font-mono text-slate-900 dark:text-slate-300 border-l border-slate-100 dark:border-white/5">
+                                                {p.expense_ratio != null ? `${p.expense_ratio.toFixed(2)}%` : '-'}
+                                            </td>
+                                            <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-400">
+                                                {p.std_deviation != null ? `${p.std_deviation.toFixed(2)}%` : '-'}
+                                            </td>
+                                            {hasTurnover && (
                                                 <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-400">
-                                                    {p.modified_duration != null ? `${p.modified_duration.toFixed(2)}` : '-'}
+                                                    {p.portfolio_turnover != null ? `${p.portfolio_turnover.toFixed(2)}%` : '-'}
                                                 </td>
-                                                <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-400">
-                                                    {p.avg_eff_maturity != null ? `${p.avg_eff_maturity.toFixed(2)}` : '-'}
-                                                </td>
-                                            </>
-                                        )}
-                                    </tr>
-                                ))}
+                                            )}
+
+                                            {hasDebt && (
+                                                <>
+                                                    <td className="px-4 py-2 text-right font-mono text-emerald-600 dark:text-emerald-400 border-l border-slate-100 dark:border-white/5">
+                                                        {p.yield_to_maturity != null ? `${p.yield_to_maturity.toFixed(2)}%` : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-400">
+                                                        {p.modified_duration != null ? `${p.modified_duration.toFixed(2)}` : '-'}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-right font-mono text-slate-600 dark:text-slate-400">
+                                                        {p.avg_eff_maturity != null ? `${p.avg_eff_maturity.toFixed(2)}` : '-'}
+                                                    </td>
+                                                </>
+                                            )}
+                                        </tr>
+                                    )
+                                })}
                             </tbody>
                         </table>
                     </div>

@@ -1,6 +1,6 @@
 import requests
 import logging
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import List, Tuple, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -102,3 +102,52 @@ def fetch_amfi_date_nav(amfi_code: str, target_date: date) -> Optional[float]:
         logger.error(f"Failed to fetch matching AMFI date nav: {e}")
 
     return None
+
+
+
+def fetch_amfi_range_navs_bulk(from_date: date, to_date: date) -> dict:
+    """
+    Fetches NAV data for ALL schemes over a date range from the AMFI portal.
+    Max 90-day window between from_date and to_date (enforced by AMFI).
+
+    Returns: dict mapping amfi_code -> list of (date, nav) tuples.
+    """
+    if (to_date - from_date).days > 90:
+        logger.warning(
+            "Date range exceeds 90 days. Clamping from_date."
+        )
+        from_date = to_date - timedelta(days=90)
+
+    results = {}
+    try:
+        frmdt = from_date.strftime("%d-%b-%Y")
+        todt = to_date.strftime("%d-%b-%Y")
+        url = f"https://portal.amfiindia.com/DownloadNAVHistoryReport_Po.aspx?frmdt={frmdt}&todt={todt}"
+
+        logger.info(f"Fetching AMFI range NAVs for ALL schemes: {frmdt} → {todt}")
+        response = requests.get(url, timeout=30)  # Larger file, higher timeout
+
+        if response.status_code == 200:
+            for line in response.text.splitlines():
+                parts = line.split(";")
+                if len(parts) >= 8:
+                    amfi_code = parts[0].strip()
+                    if not amfi_code.isdigit():  # Skip header lines
+                        continue
+                    try:
+                        nav_val = float(parts[4].strip())
+                        date_obj = datetime.strptime(parts[7].strip(), "%d-%b-%Y").date()
+                        
+                        if amfi_code not in results:
+                            results[amfi_code] = []
+                        results[amfi_code].append((date_obj, nav_val))
+                    except ValueError:
+                        continue
+        else:
+            logger.warning(f"AMFI bulk range API returned HTTP {response.status_code}")
+
+    except Exception as e:
+        logger.error(f"Failed to fetch bulk AMFI range NAVs: {e}")
+
+    logger.info(f"Got NAV records for {len(results)} schemes in range")
+    return results

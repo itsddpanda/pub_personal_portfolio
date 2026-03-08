@@ -3,7 +3,7 @@ import json
 import logging
 import requests
 from datetime import datetime, date as dt_date
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from app.models.models import (
     FundEnrichment,
@@ -190,6 +190,205 @@ def trigger_bulk_daas_prefetch(isins: list[str]) -> None:
             continue
 
 
+def generate_custom_highlights(enrichment: FundEnrichment, thresholds: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    """
+    Generates semantic 'Key Highlights' based on the fund's actual metrics.
+    Replaces static/poor-quality DaaS kbyi intelligence.
+    """
+    if thresholds is None:
+        # Hardcoded default thresholds as fallback for deleted threshold_resolver
+        thresholds = {
+            "cagr_rank_top": 5,
+            "cagr_outperform_min": 2.0,
+            "cagr_underperform_min": -2.0,
+            "expense_ratio_low": 0.5,
+            "expense_ratio_high": 2.0,
+            "concentration_top5_high": 35.0,
+            "beta_high": 1.2,
+            "beta_low": 0.8,
+            "ytm_attractive": 7.5,
+            "pe_discount_pct": 0.8,
+        }
+
+    highlights = []
+
+    # Safe gets with fallbacks from thresholds dictionary
+    t_rank_top = thresholds.get("cagr_rank_top", 5)
+    t_outperform_min = thresholds.get("cagr_outperform_min", 2.0)
+    t_underperform_min = thresholds.get("cagr_underperform_min", -2.0)
+    t_expense_low = thresholds.get("expense_ratio_low", 0.5)
+    t_expense_high = thresholds.get("expense_ratio_high", 2.0)
+    t_conc_high = thresholds.get("concentration_top5_high", 35.0)
+    t_beta_high = thresholds.get("beta_high", 1.2)
+    t_beta_low = thresholds.get("beta_low", 0.8)
+    t_ytm_attr = thresholds.get("ytm_attractive", 7.5)
+    t_pe_disc = thresholds.get("pe_discount_pct", 0.8)
+
+    # 1. Performance Insights
+    perf = enrichment.performance
+    risk = enrichment.risk_metrics
+    
+    is_consistent_compounder = False
+    is_high_return = False
+    
+    if perf and risk:
+        # Check Multi-period consistency 
+        if (perf.cagr_1y and risk.cat_avg_1y and perf.cagr_1y > risk.cat_avg_1y) and \
+           (perf.cagr_3y and risk.cat_avg_3y and perf.cagr_3y > risk.cat_avg_3y) and \
+           (perf.cagr_5y and risk.cat_avg_5y and perf.cagr_5y > risk.cat_avg_5y):
+           
+            is_consistent_compounder = True
+            highlights.append({
+                "Performance": {
+                    "text": "Consistent Compounder: Outperformed category average across 1-year, 3-year, and 5-year periods.",
+                    "type": "positive"
+                }
+            })
+
+        # Check 3Y Performance vs Rank (if not already highlighted as consistent compounder)
+        if not is_consistent_compounder:
+            if perf.cagr_rank_3y and perf.cagr_rank_3y <= t_rank_top:
+                is_high_return = True
+                highlights.append({
+                    "Performance": {
+                        "text": f"Top-tier performer in its category, ranking #{perf.cagr_rank_3y} over the last 3 years.",
+                        "type": "positive"
+                    }
+                })
+            elif perf.cagr_3y and risk.cat_avg_3y:
+                diff = perf.cagr_3y - risk.cat_avg_3y
+                if diff > t_outperform_min:
+                    is_high_return = True
+                    highlights.append({
+                        "Return": {
+                            "text": f"Consistently outperformed category average by {diff:.1f}% over 3 years.",
+                            "type": "positive"
+                        }
+                    })
+                elif diff < t_underperform_min:
+                    highlights.append({
+                        "Underperformance": {
+                            "text": f"Underperformed category average by {abs(diff):.1f}% over 3 years.",
+                            "type": "risk"
+                        }
+                    })
+
+    # 2. Cost Efficiency
+    if enrichment.expense_ratio is not None:
+        if enrichment.expense_ratio < t_expense_low:
+            highlights.append({
+                "Cost": {
+                    "text": f"Highly cost-effective with an expense ratio of just {enrichment.expense_ratio}%.",
+                    "type": "positive"
+                }
+            })
+        elif enrichment.expense_ratio > t_expense_high:
+            highlights.append({
+                "Cost": {
+                    "text": f"Expensive relative to peers, with an expense ratio of {enrichment.expense_ratio}%.",
+                    "type": "risk"
+                }
+            })
+
+    # 3. Concentration Risk
+    if enrichment.top_5_stocks_weight and enrichment.top_5_stocks_weight > t_conc_high:
+        highlights.append({
+            "Concentration": {
+                "text": f"Concentrated portfolio with {enrichment.top_5_stocks_weight:.1f}% in the top 5 holdings. Higher impact of individual stock moves.",
+                "type": "risk"
+            }
+        })
+
+    # 4. Volatility / Risk & Cross-Metrics
+    is_high_beta = False
+    if risk and risk.beta_3y:
+        if risk.beta_3y > t_beta_high:
+            is_high_beta = True
+            if is_high_return or is_consistent_compounder:
+                highlights.append({
+                    "Volatility": {
+                        "text": f"Returns come with risk: High volatility (Beta: {risk.beta_3y:.2f}) relative to the benchmark. Expect sharper swings.",
+                        "type": "info"
+                    }
+                })
+            else:
+                highlights.append({
+                    "Volatility": {
+                        "text": f"Higher volatility (Beta: {risk.beta_3y:.2f}) relative to the benchmark. Expect sharper swings.",
+                        "type": "risk"
+                    }
+                })
+        elif risk.beta_3y < t_beta_low:
+            highlights.append({
+                "Stability": {
+                    "text": f"Lower volatility (Beta: {risk.beta_3y:.2f}) than the broader market. Provides defensive stability.",
+                    "type": "positive"
+                }
+            })
+
+    # 5. Asset Type Specifics
+    if enrichment.yield_to_maturity and enrichment.yield_to_maturity > t_ytm_attr:
+        highlights.append({
+            "Yield": {
+                "text": f"Attractive gross yield of {enrichment.yield_to_maturity:.2f}% YTM for debt investors.",
+                "type": "positive"
+            }
+        })
+    
+    if enrichment.pe and enrichment.cat_avg_pe:
+        if enrichment.pe < enrichment.cat_avg_pe * t_pe_disc:
+            highlights.append({
+                "Valuation": {
+                    "text": "Value-oriented positioning with P/E significantly below category average.",
+                    "type": "positive"
+                }
+            })
+        elif enrichment.pe > enrichment.cat_avg_pe * 1.2:
+            highlights.append({
+                "Valuation": {
+                    "text": "Expensive valuation with P/E significantly above category average.",
+                    "type": "risk"
+                }
+            })
+
+    # 6. Data Staleness
+    if enrichment.fetched_at:
+        try:
+            from datetime import timezone
+            now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+            age_days = (now_utc - enrichment.fetched_at).days
+            if age_days > 30:
+                highlights.append({
+                    "Data": {
+                        "text": f"Underlying data is {age_days} days old and may not reflect current market conditions.",
+                        "type": "warning"
+                    }
+                })
+        except Exception:
+            pass
+
+    # Fallback if no highlights generated
+    if not highlights:
+        age_text = ""
+        if enrichment.inception_date:
+            try:
+                from datetime import timezone
+                now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+                years = (now_utc.date() - enrichment.inception_date).days / 365.25
+                age_text = f" {years:.1f}-year old"
+            except Exception:
+                pass
+            
+        highlights.append({
+            "Insight": {
+                "text": f"Analyzing this{age_text} {enrichment.category or 'fund'} across its {enrichment.number_of_holdings or 'multiple'} holdings.",
+                "type": "info"
+            }
+        })
+
+    return highlights
+
+
 def parse_enrichment_response(
     scheme_id: int,
     data: Dict[str, Any],
@@ -199,7 +398,7 @@ def parse_enrichment_response(
 ) -> FundEnrichment:
     """
     Parses the DaaS JSON dictionary into the local SQLAlchemy models.
-    Does NOT save to DB - just builds the object graph.
+    Generates local intelligence highlights to replace DaaS kbyi.
     """
 
     # Parse calculated_at timestamp
@@ -211,6 +410,43 @@ def parse_enrichment_response(
         except (ValueError, TypeError):
             calculated_at_dt = None
 
+    # Normalization calculations for Asset and Cap
+    raw_equity_alloc = _safe_float(data.get("equity_alloc"))
+    raw_debt_alloc = _safe_float(data.get("debt_alloc"))
+    raw_cash_alloc = _safe_float(data.get("cash_alloc"))
+    raw_other_alloc = _safe_float(data.get("other_alloc"))
+
+    total_asset_alloc = (raw_equity_alloc or 0.0) + (raw_debt_alloc or 0.0) + (raw_cash_alloc or 0.0) + (raw_other_alloc or 0.0)
+
+    equity_alloc_final = raw_equity_alloc
+    debt_alloc_final = raw_debt_alloc
+    cash_alloc_final = raw_cash_alloc
+    other_alloc_final = raw_other_alloc
+
+    if total_asset_alloc > 100.0:
+        if raw_equity_alloc is not None: equity_alloc_final = round((raw_equity_alloc / total_asset_alloc) * 100.0, 2)
+        if raw_debt_alloc is not None: debt_alloc_final = round((raw_debt_alloc / total_asset_alloc) * 100.0, 2)
+        if raw_cash_alloc is not None: cash_alloc_final = round((raw_cash_alloc / total_asset_alloc) * 100.0, 2)
+        if raw_other_alloc is not None: other_alloc_final = round((raw_other_alloc / total_asset_alloc) * 100.0, 2)
+
+    raw_large_cap_wt = _safe_float(data.get("large_cap_wt"))
+    raw_mid_cap_wt = _safe_float(data.get("mid_cap_wt"))
+    raw_small_cap_wt = _safe_float(data.get("small_cap_wt"))
+    raw_others_cap_wt = _safe_float(data.get("others_cap_wt"))
+
+    total_cap_weight = (raw_large_cap_wt or 0.0) + (raw_mid_cap_wt or 0.0) + (raw_small_cap_wt or 0.0) + (raw_others_cap_wt or 0.0)
+
+    large_cap_wt_final = raw_large_cap_wt
+    mid_cap_wt_final = raw_mid_cap_wt
+    small_cap_wt_final = raw_small_cap_wt
+    others_cap_wt_final = raw_others_cap_wt
+
+    if total_cap_weight > 100.0:
+        if raw_large_cap_wt is not None: large_cap_wt_final = round((raw_large_cap_wt / total_cap_weight) * 100.0, 2)
+        if raw_mid_cap_wt is not None: mid_cap_wt_final = round((raw_mid_cap_wt / total_cap_weight) * 100.0, 2)
+        if raw_small_cap_wt is not None: small_cap_wt_final = round((raw_small_cap_wt / total_cap_weight) * 100.0, 2)
+        if raw_others_cap_wt is not None: others_cap_wt_final = round((raw_others_cap_wt / total_cap_weight) * 100.0, 2)
+
     # 1. Base Enrichment Record — all flat fields from API
     enrichment = FundEnrichment(
         scheme_id=scheme_id,
@@ -218,7 +454,7 @@ def parse_enrichment_response(
         fetched_at=datetime.utcnow(),
 
         # Identifiers
-        code=data.get("code"),
+        code=None,  # Disabled per requirement
         morningstar_id=data.get("morningstar_id"),
 
         # Fund metadata
@@ -272,16 +508,16 @@ def parse_enrichment_response(
         avg_credit_quality_name=data.get("avg_credit_quality_name"),
 
         # Asset Allocation
-        equity_alloc=_safe_float(data.get("equity_alloc")),
-        debt_alloc=_safe_float(data.get("debt_alloc")),
-        cash_alloc=_safe_float(data.get("cash_alloc")),
-        other_alloc=_safe_float(data.get("other_alloc")),
-
-        # Cap-weight breakdown
-        large_cap_wt=_safe_float(data.get("large_cap_wt")),
-        mid_cap_wt=_safe_float(data.get("mid_cap_wt")),
-        small_cap_wt=_safe_float(data.get("small_cap_wt")),
-        others_cap_wt=_safe_float(data.get("others_cap_wt")),
+        equity_alloc=equity_alloc_final,
+        debt_alloc=debt_alloc_final,
+        cash_alloc=cash_alloc_final,
+        other_alloc=other_alloc_final,
+        
+        # Cap-weight breakdown (Normalized)
+        large_cap_wt=large_cap_wt_final,
+        mid_cap_wt=mid_cap_wt_final,
+        small_cap_wt=small_cap_wt_final,
+        others_cap_wt=others_cap_wt_final,
 
         # Concentration metrics
         number_of_holdings=_safe_int(data.get("number_of_holdings")),
@@ -289,9 +525,6 @@ def parse_enrichment_response(
         top_3_sectors_weight=_safe_float(data.get("top_3_sectors_weight")),
         top_5_stocks_weight=_safe_float(data.get("top_5_stocks_weight")),
         top_10_stocks_weight=_safe_float(data.get("top_10_stocks_weight")),
-
-        # KBYI insights (stored as JSON text)
-        kbyi=json.dumps(data.get("kbyi")) if data.get("kbyi") else None,
 
         # API calculation timestamp
         calculated_at=calculated_at_dt,
@@ -332,8 +565,8 @@ def parse_enrichment_response(
         enrichment.performance.cagr_rank_5y = _safe_int(cagr_ranks.get("5 Years"))
         enrichment.performance.cagr_rank_10y = _safe_int(cagr_ranks.get("10 Years"))
 
+        # ... (rest of the code continues as is)
         enrichment.performance.recorded_at = _safe_date(latest_hist.get("recorded_at"))
-
         # Parse Risk Metrics
         if latest_hist.get("risk_metrics"):
             risk = latest_hist["risk_metrics"]
@@ -504,18 +737,29 @@ def parse_enrichment_response(
         holdings_data = []
 
     holdings_list = []
+    
+    # Calculate sum of holding weights for normalization
+    total_holding_weight = sum(_safe_float(h.get("weighting")) or 0.0 for h in holdings_data if isinstance(h, dict))
+    
     for h in holdings_data:
         if not h or not isinstance(h, dict):
             continue
         # Serialize holdings_history array to JSON text if present
         hh = h.get("holdings_history")
         hh_json = json.dumps(hh) if hh else None
+        
+        raw_weight = _safe_float(h.get("weighting"))
+        
+        # Normalize if total exceeds 100%
+        final_weight = raw_weight
+        if raw_weight is not None and total_holding_weight > 100.0:
+            final_weight = round((raw_weight / total_holding_weight) * 100.0, 2)
 
         holdings_list.append(
             FundHolding(
                 stock_name=h.get("stock_name") or "Unknown Stock",
                 sector=h.get("sector"),
-                weighting=_safe_float(h.get("weighting")),
+                weighting=final_weight,
                 market_value=_safe_float(h.get("market_value")),
                 change_1m=_safe_float(h.get("change_1m")),
                 holdings_history=hh_json,
@@ -529,14 +773,25 @@ def parse_enrichment_response(
         sectors_data = []
 
     sectors_list = []
+    
+    # Calculate sum of sector weights for normalization
+    total_sector_weight = sum(_safe_float(s.get("weighting")) or 0.0 for s in sectors_data if isinstance(s, dict))
+    
     for s in sectors_data:
         if not s or not isinstance(s, dict):
             continue
+            
+        raw_weight = _safe_float(s.get("weighting"))
+        
+        # Normalize if total exceeds 100%
+        final_weight = raw_weight
+        if raw_weight is not None and total_sector_weight > 100.0:
+            final_weight = round((raw_weight / total_sector_weight) * 100.0, 2)
 
         sectors_list.append(
             FundSector(
                 sector_name=s.get("sector_name") or "Unknown Sector",
-                weighting=_safe_float(s.get("weighting")),
+                weighting=final_weight,
                 market_value=_safe_float(s.get("market_value")),
                 change_1m=_safe_float(s.get("change_1m")),
             )
@@ -608,6 +863,16 @@ def parse_enrichment_response(
             )
         )
     enrichment.managers = managers_list
+    
+    # 7. Normalization Meta Tracking
+    enrichment.is_sectors_normalized = total_sector_weight > 100.0
+    enrichment.is_holdings_normalized = total_holding_weight > 100.0
+    enrichment.is_asset_normalized = total_asset_alloc > 100.0
+    enrichment.is_cap_normalized = total_cap_weight > 100.0
+
+    # 8. Local Intelligence Generation (REPLACES kbyi)
+    highlights = generate_custom_highlights(enrichment)
+    enrichment.kbyi = json.dumps(highlights)
 
     # Run Data Validation Engine (in-memory update)
     enrichment_nav = data.get("latest_nav")
@@ -616,3 +881,4 @@ def parse_enrichment_response(
     )
 
     return enrichment
+

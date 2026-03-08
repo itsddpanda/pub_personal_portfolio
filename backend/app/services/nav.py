@@ -165,6 +165,48 @@ def sync_navs(session: Session):
     return {"updated": updated_count, "errors": errors}
 
 
+def find_schemes_with_nav_gaps(session: Session, lookback_days: int = 7, min_expected: int = 5):
+    """
+    Finds schemes with fewer than `min_expected` NavHistory records
+    in the last `lookback_days` calendar days.
+    Returns: list of (scheme_id, amfi_code, actual_count) tuples.
+    """
+    today = date.today()
+    yesterday = today - timedelta(days=1)
+    cutoff = yesterday - timedelta(days=lookback_days)
+
+    results = session.exec(
+        select(Scheme.id, Scheme.amfi_code, func.count(NavHistory.id))
+        .join(NavHistory, NavHistory.scheme_id == Scheme.id)
+        .where(
+            Scheme.amfi_code != None, 
+            NavHistory.date >= cutoff,
+            NavHistory.date <= yesterday
+        )
+        .group_by(Scheme.id, Scheme.amfi_code)
+    ).all()
+
+    seen_ids = set()
+    gap_schemes = []
+
+    for scheme_id, amfi_code, count in results:
+        seen_ids.add(scheme_id)
+        if count < min_expected:
+            gap_schemes.append((scheme_id, amfi_code, count))
+
+    # Schemes with ZERO records in the window (no JOIN match)
+    all_schemes = session.exec(
+        select(Scheme.id, Scheme.amfi_code).where(Scheme.amfi_code != None)
+    ).all()
+
+    for sid, amfi in all_schemes:
+        if sid not in seen_ids:
+            gap_schemes.append((sid, amfi, 0))
+
+    logger.info(f"Gap scan: {len(gap_schemes)} schemes with < {min_expected} NAVs in last {lookback_days} days")
+    return gap_schemes
+
+
 def backfill_historical_nav(
     session: Session, scheme_id: int, amfi_code: str, force: bool = False
 ):
