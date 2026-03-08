@@ -24,8 +24,9 @@ export async function uploadCAS(file: File, password: string, xUserId?: string) 
     return res.json();
 }
 
-export async function getDashboardSummary(xUserId: string) {
-    const res = await fetch(`${API_BASE}/analytics/summary`, {
+export async function getDashboardSummary(xUserId: string, includeRedeemed: boolean = false) {
+    const params = includeRedeemed ? '?include_redeemed=true' : '';
+    const res = await fetch(`${API_BASE}/analytics/summary${params}`, {
         headers: {
             'x-user-id': xUserId,
         },
@@ -66,8 +67,9 @@ export async function getSyncStatus() {
     return res.json();
 }
 
-export async function getSchemeDetails(amfiCode: string, xUserId: string) {
-    const res = await fetch(`${API_BASE}/scheme/${amfiCode}`, {
+export async function getSchemeDetails(amfiCode: string, xUserId: string, includeTaxes: boolean = false) {
+    const params = includeTaxes ? '?include_taxes=true' : '';
+    const res = await fetch(`${API_BASE}/scheme/${amfiCode}${params}`, {
         headers: {
             'x-user-id': xUserId,
         },

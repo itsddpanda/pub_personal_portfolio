@@ -210,13 +210,31 @@ def process_cas_data(
             search_name = raw_amc
             raw_clean = raw_amc.lower().replace(" mutual fund", "").replace(" mf", "").strip()
 
-            # 1. Map to standardized AMC_MAP code via fuzzy substring search
+            # 1. Ranked AMC matching: exact match first, then scored substring
+            best_match = None
+            best_score = 0.0
+
             for map_name, m_code in AMC_MAP.items():
                 map_clean = map_name.lower().replace(" mutual fund", "").replace(" mf", "").strip()
-                if raw_clean == map_clean or raw_clean in map_clean or map_clean in raw_clean:
-                    amc_code = m_code
-                    search_name = map_name
+
+                # Exact match — immediately break
+                if raw_clean == map_clean:
+                    best_match = (map_name, m_code)
+                    best_score = 1.0
                     break
+
+                # Guarded substring match — shorter must be >= 4 chars
+                # AND must cover > 50% of the longer string
+                shorter, longer = (raw_clean, map_clean) if len(raw_clean) <= len(map_clean) else (map_clean, raw_clean)
+                if len(shorter) >= 4 and shorter in longer:
+                    score = len(shorter) / len(longer)
+                    if score > best_score:
+                        best_score = score
+                        best_match = (map_name, m_code)
+
+            if best_match:
+                search_name, amc_code = best_match
+                print(f"AMC mapped: '{raw_amc}' → '{search_name}' (code={amc_code}, score={best_score:.2f})")
             
             if amc_code:
                 # Lookup in DB by code
@@ -253,8 +271,8 @@ def process_cas_data(
             session.add(folio_obj)
             session.commit()
             session.refresh(folio_obj)
-        elif not folio_obj.amc_id and amc_obj:
-            # Retrospectively assign AMC for folios missing it
+        elif amc_obj and folio_obj.amc_id != amc_obj.id:
+            # Correct AMC assignment (handles both missing and wrong IDs)
             folio_obj.amc_id = amc_obj.id
             session.add(folio_obj)
             session.commit()
@@ -337,7 +355,7 @@ def process_cas_data(
                 session.refresh(scheme_obj)
             else:
                 updated = False
-                if not scheme_obj.amc_id and amc_obj:
+                if amc_obj and scheme_obj.amc_id != amc_obj.id:
                     scheme_obj.amc_id = amc_obj.id
                     updated = True
 

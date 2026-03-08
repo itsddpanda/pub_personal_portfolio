@@ -10,6 +10,7 @@ router = APIRouter()
 
 @router.get("/summary")
 async def get_summary(
+    include_redeemed: bool = False,
     x_user_id: str = Header(None), session: Session = Depends(get_session)
 ):
     """
@@ -28,5 +29,5 @@ async def get_summary(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    summary = get_portfolio_summary(session, user_uuid)
+    summary = get_portfolio_summary(session, user_uuid, include_redeemed=include_redeemed)
     return summary

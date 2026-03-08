@@ -28,6 +28,7 @@ router = APIRouter()
 @router.get("/{amfi_code}")
 def get_scheme_details(
     amfi_code: str,
+    include_taxes: bool = False,
     x_user_id: str = Header(None),
     session: Session = Depends(get_session),
 ):
@@ -118,8 +119,24 @@ def get_scheme_details(
                     units_to_redeem -= batch["units"]
                     fifo_queue.pop(0)
 
-        if "STAMP_DUTY" in t_type:
-            total_stamp_duty += abs(amount)
+        if "STAMP_DUTY" in t_type or "STT" in t_type:
+            # We can accumulate STT into the stamp duty total or just leave it. Since it's already a negligible metric we leave it.
+            if "STAMP_DUTY" in t_type:
+                total_stamp_duty += abs(amount)
+
+            if include_taxes:
+                ledger.append(
+                    {
+                        "id": t.id,
+                        "date": t.date.isoformat(),
+                        "type": t.type,
+                        "amount": amount,
+                        "nav": t.nav,
+                        "units": units,
+                        "running_balance": round(running_units, 3),
+                        "is_tax": True,
+                    }
+                )
         else:
             ledger.append(
                 {
@@ -130,6 +147,7 @@ def get_scheme_details(
                     "nav": t.nav,
                     "units": units,
                     "running_balance": round(running_units, 3),
+                    "is_tax": False,
                 }
             )
 
@@ -147,7 +165,7 @@ def get_scheme_details(
 
     for t in transactions:
         t_type = t.type.upper()
-        if "STAMP_DUTY" in t_type:
+        if "STAMP_DUTY" in t_type or "STT" in t_type:
             continue
 
         if any(x in t_type for x in inflow_types):

@@ -17,7 +17,10 @@ interface Holding {
     current_value: number;
     invested_value: number;
     is_estimated: boolean;
+    is_redeemed: boolean;
     nav_change_percent: number | null;
+    xirr?: number;
+    xirr_status?: string;
 }
 
 interface SummaryData {
@@ -28,6 +31,7 @@ interface SummaryData {
     holdings: Holding[];
     has_estimated_holdings: boolean;
     estimated_schemes_count: number;
+    redeemed_count: number;
     total_stamp_duty: number;
     nav_sync_status: string;
     nav_sync_last_run: string | null;
@@ -44,17 +48,29 @@ export default function DashboardPage() {
     const [syncing, setSyncing] = useState(false);
     const [syncProgress, setSyncProgress] = useState<string | null>(null);
     const [showEstimatedBanner, setShowEstimatedBanner] = useState(true);
+    const [showRedeemed, setShowRedeemed] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('mfa_show_redeemed') === 'true';
+        }
+        return false;
+    });
     const router = useRouter();
     const toast = useToast();
+
+    const toggleRedeemed = () => {
+        const next = !showRedeemed;
+        setShowRedeemed(next);
+        localStorage.setItem('mfa_show_redeemed', String(next));
+    };
 
     const syncingRef = useRef(syncing);
     useEffect(() => {
         syncingRef.current = syncing;
     }, [syncing]);
 
-    const fetchData = React.useCallback(async (userId: string) => {
+    const fetchData = React.useCallback(async (userId: string, includeRedeemed: boolean = false) => {
         try {
-            const result = await getDashboardSummary(userId);
+            const result = await getDashboardSummary(userId, includeRedeemed);
             if (!result) {
                 router.push('/upload');
             } else {
@@ -91,7 +107,7 @@ export default function DashboardPage() {
             sessionStorage.removeItem('upload_success_messages');
         }
 
-        fetchData(userId);
+        fetchData(userId, showRedeemed);
 
         // Dynamic polling interval
         let pollTimeout: NodeJS.Timeout;
@@ -102,7 +118,7 @@ export default function DashboardPage() {
 
                 // If it just finished syncing, refresh data
                 if (syncingRef.current && !status.is_syncing && userId) {
-                    await fetchData(userId);
+                    await fetchData(userId, showRedeemed);
                 }
 
                 setSyncing(status.is_syncing);
@@ -124,7 +140,7 @@ export default function DashboardPage() {
         poll();
 
         return () => clearTimeout(pollTimeout);
-    }, [router, fetchData, toast]);
+    }, [router, fetchData, toast, showRedeemed]);
 
 
     const handleForceSync = async () => {
@@ -196,6 +212,25 @@ export default function DashboardPage() {
                         <Button variant="secondary" onClick={() => router.push('/upload')}>
                             Upload CAS
                         </Button>
+                        <button
+                            onClick={toggleRedeemed}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${showRedeemed
+                                    ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30 shadow-sm'
+                                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:border-indigo-200 dark:hover:border-indigo-500/20 hover:text-indigo-600 dark:hover:text-indigo-400'
+                                }`}
+                            title={showRedeemed ? 'Hide fully exited holdings' : 'Show fully exited holdings'}
+                        >
+                            <span className="text-xs">👁</span>
+                            Show Exited
+                            {(data.redeemed_count > 0) && (
+                                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${showRedeemed
+                                        ? 'bg-indigo-200/60 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                                    }`}>
+                                    {data.redeemed_count}
+                                </span>
+                            )}
+                        </button>
                     </div>
                 </div>
 
@@ -281,28 +316,41 @@ export default function DashboardPage() {
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {holdings.map((h) => (
-                                    <tr key={h.isin} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                    <tr key={h.isin} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${h.is_redeemed ? 'opacity-55' : ''}`}>
                                         <td className="px-6 py-4 text-sm font-medium">
-                                            <Link href={h.amfi_code ? `/scheme/${h.amfi_code}` : '#'} className="text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 block truncate max-w-[200px] sm:max-w-xs md:max-w-md xl:max-w-xl transition-colors" title={h.scheme_name}>
-                                                {h.scheme_name}
-                                            </Link>
+                                            <div className="flex items-center gap-2">
+                                                <Link href={h.amfi_code ? `/scheme/${h.amfi_code}` : '#'} className={`${h.is_redeemed ? 'text-slate-500 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'} group-hover:text-indigo-600 dark:group-hover:text-indigo-400 block truncate max-w-[200px] sm:max-w-xs md:max-w-md xl:max-w-xl transition-colors`} title={h.scheme_name}>
+                                                    {h.scheme_name}
+                                                </Link>
+                                                {h.is_redeemed && (
+                                                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border border-slate-200 dark:border-white/10">
+                                                        Exited
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 text-right font-mono">{h.units.toFixed(3)}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 text-right font-mono">₹{h.current_nav.toFixed(2)}</td>
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-mono ${h.nav_change_percent != null ? (h.nav_change_percent > 0 ? 'text-emerald-500' : (h.nav_change_percent < 0 ? 'text-rose-500' : 'text-slate-500')) : 'text-slate-400'}`}>
-                                            {h.nav_change_percent != null ? `${h.nav_change_percent > 0 ? '+' : ''}${h.nav_change_percent.toFixed(2)}%` : '-'}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 text-right font-mono">{h.is_redeemed ? '—' : h.units.toFixed(3)}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 text-right font-mono">{h.is_redeemed ? '—' : `₹${h.current_nav.toFixed(2)}`}</td>
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-mono ${h.is_redeemed ? 'text-slate-400' : (h.nav_change_percent != null ? (h.nav_change_percent > 0 ? 'text-emerald-500' : (h.nav_change_percent < 0 ? 'text-rose-500' : 'text-slate-500')) : 'text-slate-400')}`}>
+                                            {h.is_redeemed ? '—' : (h.nav_change_percent != null ? `${h.nav_change_percent > 0 ? '+' : ''}${h.nav_change_percent.toFixed(2)}%` : '-')}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-700 dark:text-indigo-300 text-right font-semibold font-mono bg-indigo-50/50 dark:bg-indigo-500/[0.02]">₹{h.current_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-700 dark:text-indigo-300 text-right font-semibold font-mono bg-indigo-50/50 dark:bg-indigo-500/[0.02]">{h.is_redeemed ? '₹0' : `₹${h.current_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
-                                            <span className="text-slate-700 dark:text-slate-300 font-mono">₹{h.invested_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
-                                            {h.is_estimated && (
-                                                <button
-                                                    onClick={() => router.push('/holdings/estimated')}
-                                                    className="ml-2 hover:opacity-70 transition-opacity bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded text-xs"
-                                                    title="Estimated Cost (Partial History)"
-                                                >
-                                                    ⚠️ Est.
-                                                </button>
+                                            {h.is_redeemed ? (
+                                                <span className="text-slate-400 dark:text-slate-600 font-mono">₹0</span>
+                                            ) : (
+                                                <>
+                                                    <span className="text-slate-700 dark:text-slate-300 font-mono">₹{h.invested_value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span>
+                                                    {h.is_estimated && (
+                                                        <button
+                                                            onClick={() => router.push('/holdings/estimated')}
+                                                            className="ml-2 hover:opacity-70 transition-opacity bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded text-xs"
+                                                            title="Estimated Cost (Partial History)"
+                                                        >
+                                                            ⚠️ Est.
+                                                        </button>
+                                                    )}
+                                                </>
                                             )}
                                         </td>
                                     </tr>

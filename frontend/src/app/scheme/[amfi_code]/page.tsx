@@ -48,6 +48,7 @@ interface TransactionRow {
     nav: number;
     units: number;
     running_balance: number;
+    is_tax?: boolean;
 }
 
 interface SchemeData {
@@ -60,6 +61,19 @@ export default function SchemeDetailsPage() {
     const params = useParams();
     const router = useRouter();
     const amfiCode = params.amfi_code as string;
+
+    const [showTaxes, setShowTaxes] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('mfa_show_taxes') === 'true';
+        }
+        return false;
+    });
+
+    const toggleTaxes = () => {
+        const next = !showTaxes;
+        setShowTaxes(next);
+        localStorage.setItem('mfa_show_taxes', String(next));
+    };
 
     const [data, setData] = useState<SchemeData | null>(null);
     const [historyData, setHistoryData] = useState<NAVDataPoint[]>([]);
@@ -77,7 +91,7 @@ export default function SchemeDetailsPage() {
 
         const fetchDetails = async () => {
             try {
-                const res = await getSchemeDetails(amfiCode, userId);
+                const res = await getSchemeDetails(amfiCode, userId, showTaxes);
                 if (res) {
                     setData(res);
                 } else {
@@ -106,7 +120,7 @@ export default function SchemeDetailsPage() {
 
         fetchDetails();
         fetchHistory();
-    }, [amfiCode, router, refreshTick]);
+    }, [amfiCode, router, refreshTick, showTaxes]);
 
     const handleRefreshHistory = async () => {
         setHistoryLoading(true);
@@ -335,7 +349,21 @@ export default function SchemeDetailsPage() {
             <EnrichmentView amfiCode={amfiCode} onLoaded={() => setRefreshTick(t => t + 1)} />
 
             {/* Minimalist Ledger Table */}
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-200 mb-4 px-1 drop-shadow-sm">Transaction Ledger</h2>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 mt-8 px-1">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-slate-200 drop-shadow-sm">Transaction Ledger</h2>
+                <button
+                    onClick={toggleTaxes}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${showTaxes
+                        ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/30 shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:border-amber-200 dark:hover:border-amber-500/20 hover:text-amber-600 dark:hover:text-amber-400'
+                        }`}
+                    title={showTaxes ? 'Hide stamp duty and tax transactions' : 'Show stamp duty and tax transactions'}
+                >
+                    <span className="text-xs">🧾</span>
+                    Show Taxes
+                </button>
+            </div>
+
             <div className="bg-white dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-white/5 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -351,11 +379,12 @@ export default function SchemeDetailsPage() {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                             {ledger.map((row) => {
-                                const isOutflow = ['REDEMPTION', 'SWITCH_OUT', 'STP_OUT', 'SWP'].some(t => row.type.toUpperCase().includes(t));
+                                const isOutflow = ['REDEMPTION', 'SWITCH_OUT', 'STP_OUT', 'SWP', 'STAMP_DUTY'].some(t => row.type.toUpperCase().includes(t));
+                                const isTax = row.is_tax === true;
 
                                 return (
-                                    <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 dark:text-slate-300 font-medium">
+                                    <tr key={row.id} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${isTax ? 'bg-amber-50/30 dark:bg-amber-900/10' : ''}`}>
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${isTax ? 'text-slate-400 dark:text-slate-500' : 'text-slate-700 dark:text-slate-300'}`}>
                                             {new Date(row.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -364,16 +393,16 @@ export default function SchemeDetailsPage() {
                                                 <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 tracking-wide">{row.type.replace(/_/g, ' ')}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 dark:text-slate-200 text-right font-mono">
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-mono ${isTax ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'}`}>
                                             {row.amount === 0 ? '-' : `₹${Math.abs(row.amount).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-500 text-right font-mono tracking-tighter">
-                                            ₹{row.nav.toFixed(4)}
+                                            {row.nav === 0 ? '-' : `₹${row.nav.toFixed(4)}`}
                                         </td>
-                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-mono tracking-tighter ${isOutflow ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                                            {isOutflow ? '' : '+'}{row.units.toFixed(3)}
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm text-right font-mono tracking-tighter ${isTax ? 'text-slate-400 dark:text-slate-500' : (isOutflow ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400')}`}>
+                                            {row.units === 0 ? '-' : `${isOutflow ? '' : '+'}${row.units.toFixed(3)}`}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 dark:text-indigo-300 font-bold text-right font-mono bg-indigo-50/50 dark:bg-indigo-500/[0.02] border-l border-slate-200 dark:border-white/5 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/[0.05] transition-colors tracking-tighter">
+                                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-bold text-right font-mono bg-indigo-50/50 dark:bg-indigo-500/[0.02] border-l border-slate-200 dark:border-white/5 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-500/[0.05] transition-colors tracking-tighter ${isTax ? 'text-slate-400 dark:text-slate-500' : 'text-indigo-600 dark:text-indigo-300'}`}>
                                             {row.running_balance.toFixed(3)}
                                         </td>
                                     </tr>
