@@ -8,7 +8,7 @@ A privacy-first, personal portfolio analyzer for Indian mutual funds. Upload you
 
 - **🛡️ Privacy-First Parsing**: Automatically parse your CAMS/KFintech CAS PDF entirely offline. No sensitive financial data leaves your server.
 - **👤 Multi-User Profiles**: Automatically creates user profiles based on PAN numbers found in the CAS, isolated with optional PIN protection.
-- **📈 Portfolio Analytics**: Track Invested Value, Current Value, Total Gain, and XIRR at a glance. Accurately builds ledger entries via deterministic transaction hashing.
+- **📈 Portfolio Analytics**: Track Invested Value, Current Value, Total Gain, and XIRR at a glance. Upload overlapping statements without fear—intelligent deduplication ensures your portfolio remains perfectly accurate and duplicate-free.
 - **🧠 Fund Intelligence Engine**: Deep insights into each fund including category averages, Risk-Return metrics (Sharpe, Sortino, Beta), Asset/Sector Allocation, Concentration metrics, Valuation Ratios, Debt metrics (YTM, Modified Duration), and Peer group rankings.
 - **🔄 Automated NAV Tracking**: Background Cron synchronization safely keeps your historical NAVs and current portfolio valuations strictly up-to-date asynchronously without you doing anything.
 - **📊 Rich Visualizations**: View interactive historical NAV charts, sector/stock allocations, and compare funds against peers effortlessly.
