@@ -84,6 +84,8 @@ API docs (Swagger UI) at `http://localhost:8001/docs`.
 | Variable        | Default                             | Description                          |
 | --------------- | ----------------------------------- | ------------------------------------ |
 | `DATABASE_URL`  | `sqlite:////data/mfa.db`            | SQLite database path (inside Docker volume) |
+| `LOG_LEVEL`     | `INFO`                              | Logging verbosity (DEBUG, INFO, WARNING, ERROR) |
+| `TZ`            | `Asia/Kolkata`                      | Timezone for container and cron jobs  |
 | `CORS_ORIGINS`  | `http://localhost:3001,...`         | Comma-separated allowed origins      |
 
 ---
