@@ -6,13 +6,33 @@ DEFAULT_BASE="main"
 # --- Functions ---
 
 sync_branches() {
-    echo "Syncing branches with origin..."
+    PREV_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+    echo "Syncing with origin..."
+    
+    # 1. Switch to main and update
+    git checkout "$DEFAULT_BASE"
     git fetch --all --prune
-    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    echo "Updating current branch: $CURRENT_BRANCH"
-    git pull origin "$CURRENT_BRANCH"
+    git pull origin "$DEFAULT_BASE"
+    
+    # 2. Cleanup previous branch if not main
+    if [ "$PREV_BRANCH" != "$DEFAULT_BASE" ]; then
+        echo "Dropping local branch: $PREV_BRANCH"
+        git branch -D "$PREV_BRANCH"
+    fi
+    
     echo "Pruning remote-tracking branches..."
     git remote prune origin
+    
+    # 3. Optional new branch creation
+    echo ""
+    read -p "Enter new branch name to start fresh (leave empty to stay on $DEFAULT_BASE): " new_branch
+    if [ -n "$new_branch" ]; then
+        git checkout -b "$new_branch"
+        echo "Switched to new branch: $new_branch"
+    else
+        echo "Staying on $DEFAULT_BASE."
+    fi
+    
     echo "Done."
 }
 
