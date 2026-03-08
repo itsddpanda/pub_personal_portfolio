@@ -24,11 +24,11 @@ jobs:
 
     steps:
       - name: Delete old packages
-        uses: snok/container-retention-policy@v3.0.0
+        uses: snok/container-retention-policy@v3.0.5
         with:
           account: ${{ github.repository_owner }}
           image-names: ${{ matrix.package }}
           image-tags: '*'
           cut-off: 7d
-          keep-at-least: ${{ github.event.inputs.keep || '3' }}
+          keep-n-most-recent: ${{ github.event.inputs.keep || '3' }}
           token: ${{ secrets.GITHUB_TOKEN }}
