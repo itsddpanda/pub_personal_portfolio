@@ -281,6 +281,13 @@ class FundPerformance(SQLModel, table=True):
     cagr_10y: Optional[float] = None  # NEW
     cagr_tooltip: Optional[str] = None
 
+    # Extended performance metrics (from manual SQL migration)
+    quarterly_performance: Optional[str] = None
+    best_periods: Optional[str] = None
+    worst_periods: Optional[str] = None
+    sip_returns: Optional[str] = None
+    cagr_cat_avg: Optional[str] = None
+
     # Category rank fields (NEW)
     cagr_rank_1y: Optional[int] = None
     cagr_rank_3y: Optional[int] = None
