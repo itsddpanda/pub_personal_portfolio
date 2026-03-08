@@ -9,7 +9,7 @@ from collections import defaultdict
 from app.services.interfaces.market_data import get_schemes_by_ids
 
 
-def get_portfolio_summary(session: Session, user_id: str):
+def get_portfolio_summary(session: Session, user_id: str, include_redeemed: bool = False):
     """
     Calculates Portfolio XIRR and Total Value using SQL aggregations for performance.
     """
@@ -72,20 +72,29 @@ def get_portfolio_summary(session: Session, user_id: str):
     processed_holdings = []
     total_current_value = 0.0
     total_invested_value = 0.0
+    redeemed_count = 0
+
+    allowed_scheme_ids = set()
 
     for scheme_id, net_units, invested_sum in results:
-        if net_units < 0.001:
-            continue
+        is_redeemed = net_units < 0.001
+        if is_redeemed:
+            redeemed_count += 1
+            if not include_redeemed:
+                continue
 
         scheme_dto = scheme_map.get(scheme_id)
         if not scheme_dto:
             continue
 
+        allowed_scheme_ids.add(scheme_id)
+
         nav = scheme_dto.latest_nav if scheme_dto.latest_nav else 0.0
         current_val = net_units * nav
 
-        total_current_value += current_val
-        total_invested_value += invested_sum
+        if not is_redeemed:
+            total_current_value += current_val
+            total_invested_value += invested_sum
 
         enrichment_record = enrichment_map.get(scheme_id)
 
@@ -116,6 +125,7 @@ def get_portfolio_summary(session: Session, user_id: str):
                 "is_asset_normalized": enrichment_record.is_asset_normalized if enrichment_record else False,
                 "is_cap_normalized": enrichment_record.is_cap_normalized if enrichment_record else False,
                 "nav_change_percent": nav_change_pct,
+                "is_redeemed": is_redeemed,
             }
         )
 
@@ -161,8 +171,9 @@ def get_portfolio_summary(session: Session, user_id: str):
         t_type = t.type.upper()
 
         # Track stamp duty
-        if "STAMP_DUTY" in t_type:
-            total_stamp_duty += abs(t.amount) if t.amount else 0
+        if "STAMP_DUTY" in t_type or "STT" in t_type:
+            if "STAMP_DUTY" in t_type:
+                total_stamp_duty += abs(t.amount) if t.amount else 0
             continue
 
         # --- FIFO Logic ---
@@ -213,8 +224,9 @@ def get_portfolio_summary(session: Session, user_id: str):
             cash_flow = abs(t.amount)
 
         if cash_flow != 0:
-            dates.append(t.date)
-            amounts.append(cash_flow)
+            if t.scheme_id in allowed_scheme_ids:
+                dates.append(t.date)
+                amounts.append(cash_flow)
             scheme_xirr_data[t.scheme_id]["dates"].append(t.date)
             scheme_xirr_data[t.scheme_id]["amounts"].append(cash_flow)
 
@@ -305,6 +317,7 @@ def get_portfolio_summary(session: Session, user_id: str):
             "current_value": current_val,
             "invested_value": float(fifo_invested),
             "is_estimated": scheme_id in estimated_schemes,
+            "is_redeemed": ph.get("is_redeemed", False),
             "xirr": s_xirr,
             "xirr_status": s_xirr_status,
             "is_sectors_normalized": ph.get("is_sectors_normalized", False),
@@ -355,6 +368,7 @@ def get_portfolio_summary(session: Session, user_id: str):
         "holdings": final_holdings,
         "has_estimated_holdings": len(estimated_schemes) > 0,
         "estimated_schemes_count": len(estimated_schemes),
+        "redeemed_count": redeemed_count,
         "total_stamp_duty": round(total_stamp_duty, 2),
         "portfolio_1d_change_percent": round(total_weighted_1d / total_value_for_1d, 2) if total_value_for_1d > 0 else None,
         "portfolio_1d_change_amount": round(total_weighted_1d_amount, 2) if total_value_for_1d > 0 else None,

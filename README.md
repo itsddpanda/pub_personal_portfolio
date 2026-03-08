@@ -8,10 +8,12 @@ A privacy-first, personal portfolio analyzer for Indian mutual funds. Upload you
 
 - **🛡️ Privacy-First Parsing**: Automatically parse your CAMS/KFintech CAS PDF entirely offline. No sensitive financial data leaves your server.
 - **👤 Multi-User Profiles**: Automatically creates user profiles based on PAN numbers found in the CAS, isolated with optional PIN protection.
-- **📈 Portfolio Analytics**: Track Invested Value, Current Value, Total Gain, and XIRR at a glance. Upload overlapping statements without fear—intelligent deduplication ensures your portfolio remains perfectly accurate and duplicate-free.
-- **🧠 Fund Intelligence Engine**: Deep insights into each fund including category averages, Risk-Return metrics (Sharpe, Sortino, Beta), Asset/Sector Allocation, Concentration metrics, Valuation Ratios, Debt metrics (YTM, Modified Duration), and Peer group rankings.
-- **🔄 Automated NAV Tracking**: Background Cron synchronization safely keeps your historical NAVs and current portfolio valuations strictly up-to-date asynchronously without you doing anything.
-- **📊 Rich Visualizations**: View interactive historical NAV charts, sector/stock allocations, and compare funds against peers effortlessly.
+- 📉 **Portfolio Analytics & Exited Tracking**: Track Invested Value, Current Value, Total Gain, and XIRR at a glance. Toggle visibility of redeemed funds (zero balance) to view historical performance and include/exclude them from aggregate Portfolio XIRR dynamically.
+- 🧠 **Fund Intelligence Engine**: Deep insights into each fund including category averages, Risk-Return metrics (Sharpe, Sortino, Beta), Asset/Sector Allocation, Concentration metrics, Valuation Ratios, Debt metrics (YTM, Modified Duration), and Peer group rankings.
+- 💸 **Tax & Duty Transparency**: Explicitly view Stamp Duty and STT (Securities Transaction Tax) in your scheme ledgers with a dedicated "Show Taxes" toggle.
+- 🖇️ **Multi-CAS Deduplication (Experimental)**: Upload overlapping statements without fear—the engine automatically detects and merges duplicate transactions to maintain a single source of truth.
+- 🔄 **Automated NAV Tracking**: Background Cron synchronization safely keeps your historical NAVs and portfolio valuations strictly up-to-date asynchronously without any manual effort.
+- 📊 **Rich Visualizations**: View interactive historical NAV charts, sector/stock allocations, and compare funds against peers effortlessly.
 
 ---
 
@@ -30,6 +32,10 @@ A privacy-first, personal portfolio analyzer for Indian mutual funds. Upload you
 | :---: | :---: |
 | <img src="assets/Fund%20Detail.png" alt="Fund Detail" width="400"/> | <img src="assets/NAV_CHART.png" alt="NAV History Chart" width="400"/> |
 | <img src="assets/Intelligence.png" alt="Intelligence Metrics" width="400"/> | <img src="assets/fund_comparison.png" alt="Fund Comparison" width="400"/> |
+
+| CAMS Statement Options |
+| :---: |
+| <img src="assets/cams-selection.png" alt="CAMS Selection" width="800"/> |
 
 </details>
 

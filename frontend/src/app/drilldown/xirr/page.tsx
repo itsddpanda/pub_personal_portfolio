@@ -15,13 +15,27 @@ interface Holding {
     current_value: number;
     xirr?: number;
     xirr_status?: string;
+    is_redeemed?: boolean;
 }
 
 export default function XirrDrilldownPage() {
     const [holdings, setHoldings] = useState<Holding[]>([]);
     const [portfolioXirr, setPortfolioXirr] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [redeemedCount, setRedeemedCount] = useState(0);
+    const [showRedeemed, setShowRedeemed] = useState(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('mfa_show_redeemed') === 'true';
+        }
+        return false;
+    });
     const router = useRouter();
+
+    const toggleRedeemed = () => {
+        const next = !showRedeemed;
+        setShowRedeemed(next);
+        localStorage.setItem('mfa_show_redeemed', String(next));
+    };
 
     useEffect(() => {
         const userId = localStorage.getItem('mfa_user_id');
@@ -32,10 +46,11 @@ export default function XirrDrilldownPage() {
 
         const fetchData = async () => {
             try {
-                const result = await getDashboardSummary(userId);
+                const result = await getDashboardSummary(userId, showRedeemed);
                 if (!result || !result.holdings) return;
 
-                const activeHoldings = result.holdings.filter((h: any) => h.current_value > 0 || h.invested_value > 0);
+                let activeHoldings = result.holdings;
+                setRedeemedCount(result.redeemed_count || 0);
 
                 // Sort by XIRR descending, bringing errors/NA to bottom
                 activeHoldings.sort((a: Holding, b: Holding) => {
@@ -55,7 +70,7 @@ export default function XirrDrilldownPage() {
         };
 
         fetchData();
-    }, [router]);
+    }, [router, showRedeemed]);
 
     if (loading) {
         return <div className="p-8 text-center text-gray-500">Loading breakdown...</div>;
@@ -75,9 +90,30 @@ export default function XirrDrilldownPage() {
                             Time-weighted annualized return of your entire portfolio.
                         </p>
                     </div>
-                    <Button variant="outline" onClick={() => router.push('/dashboard')} className="border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 w-fit">
-                        ← Back to Dashboard
-                    </Button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={toggleRedeemed}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200 ${showRedeemed
+                                    ? 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/30 shadow-sm'
+                                    : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 hover:border-indigo-200 dark:hover:border-indigo-500/20 hover:text-indigo-600 dark:hover:text-indigo-400'
+                                }`}
+                            title={showRedeemed ? 'Hide fully exited holdings' : 'Show fully exited holdings'}
+                        >
+                            <span className="text-xs">👁</span>
+                            Show Exited
+                            {redeemedCount > 0 && (
+                                <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${showRedeemed
+                                        ? 'bg-indigo-200/60 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
+                                        : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+                                    }`}>
+                                    {redeemedCount}
+                                </span>
+                            )}
+                        </button>
+                        <Button variant="outline" onClick={() => router.push('/dashboard')} className="border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 w-fit">
+                            ← Back to Dashboard
+                        </Button>
+                    </div>
                 </div>
 
                 {/* Summary Card */}
@@ -127,11 +163,18 @@ export default function XirrDrilldownPage() {
                                     const isPositive = gain >= 0;
 
                                     return (
-                                        <tr key={h.isin} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                        <tr key={h.isin} className={`hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group ${h.is_redeemed ? 'opacity-55' : ''}`}>
                                             <td className="px-6 py-5">
-                                                <Link href={h.amfi_code ? `/scheme/${h.amfi_code}` : '#'} className="hover:underline hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-slate-800 dark:text-slate-300 block">
-                                                    <p className="text-sm font-medium line-clamp-2 leading-relaxed">{h.scheme_name}</p>
-                                                </Link>
+                                                <div className="flex items-center gap-2">
+                                                    <Link href={h.amfi_code ? `/scheme/${h.amfi_code}` : '#'} className="hover:underline hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors text-slate-800 dark:text-slate-300 block">
+                                                        <p className="text-sm font-medium line-clamp-2 leading-relaxed">{h.scheme_name}</p>
+                                                    </Link>
+                                                    {h.is_redeemed && (
+                                                        <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[9px] uppercase font-bold tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-500 border border-slate-200 dark:border-white/10">
+                                                            Exited
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <p className="text-xs text-slate-500 mt-1 font-mono">{h.isin}</p>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 text-right font-mono tracking-tight">
