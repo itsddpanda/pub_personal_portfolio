@@ -72,7 +72,6 @@ API docs (Swagger UI) at `http://localhost:8001/docs`.
 | --------- | ------------------- |
 | Backend   | FastAPI + SQLite (WAL mode) |
 | Frontend  | Next.js 14 (App Router) |
-| Parsing   | casparser           |
 | Container | Docker Compose      |
 
 ---
